@@ -25,6 +25,15 @@ class QuestCatalogueTests(unittest.TestCase):
                 self.assertEqual(counts["story_quest"], 55)
                 self.assertEqual(counts["subquest"], 4)
                 self.assertEqual(counts["hangout_event"], 19)
+                public_story_summaries = [
+                    item for item in store.search("", quest_type="story_quest", limit=100)
+                    if item.public_summary
+                ]
+                self.assertEqual(len(public_story_summaries), 13)
+                self.assertTrue(all(
+                    item.public_knowledge_level in {"public", "regional", "reported_uncertain"}
+                    for item in public_story_summaries
+                ))
                 hutao = store.search("Yet the Butterfly Flutters Away")
                 self.assertEqual(len(hutao), 1)
                 self.assertEqual(hutao[0].parent_quest_id, "Hu Tao")

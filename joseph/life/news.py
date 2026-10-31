@@ -49,6 +49,9 @@ class StoryBeat:
     hu_tao_participates: bool = False
     chronology_note: str = ""
     spoiler_scope: tuple[str, ...] = ()
+    public_summary: str = ""
+    public_knowledge_level: str = "not_publicly_known"
+    public_knowledge_note: str = ""
 
     def __post_init__(self) -> None:
         if not all(value.strip() for value in (
@@ -60,6 +63,14 @@ class StoryBeat:
             raise ValueError("beat_order must be positive")
         if self.canon_category not in CANON_CATEGORIES:
             raise ValueError("invalid canon category")
+        if self.public_knowledge_level not in {
+            "public", "regional", "reported_uncertain", "not_publicly_known"
+        }:
+            raise ValueError("invalid public knowledge level")
+        if self.public_knowledge_level == "not_publicly_known" and self.public_summary:
+            raise ValueError("non-public story beats must not have a public summary")
+        if self.public_summary and not self.public_knowledge_note:
+            raise ValueError("public summaries require a knowledge-boundary note")
         if not self.source_ids:
             raise ValueError("every canon story beat requires at least one source")
 

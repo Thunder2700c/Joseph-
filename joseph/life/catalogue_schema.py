@@ -26,6 +26,10 @@ class QuestCatalogueEntry:
     summary_state: str = "not_summarised"
     chronology_note: str = ""
     notes: str = ""
+    public_summary: str = ""
+    public_knowledge_level: str = "not_publicly_known"
+    public_knowledge_note: str = ""
+    knowledge_basis: str = "unknown"
 
     def __post_init__(self) -> None:
         if not self.quest_id.strip() or not self.title.strip() or not self.region.strip():
@@ -34,6 +38,18 @@ class QuestCatalogueEntry:
             raise ValueError(f"invalid quest_type: {self.quest_type}")
         if self.index_state not in INDEX_STATES:
             raise ValueError(f"invalid index_state: {self.index_state}")
+        if self.public_knowledge_level not in {
+            "public", "regional", "reported_uncertain", "not_publicly_known"
+        }:
+            raise ValueError("invalid public knowledge level")
+        if self.public_knowledge_level == "not_publicly_known" and self.public_summary:
+            raise ValueError("non-public quest entries must not have a public summary")
+        if self.public_summary and not self.public_knowledge_note:
+            raise ValueError("public quest summaries require a knowledge-boundary note")
+        if self.knowledge_basis not in {
+            "unknown", "heard_or_read", "publicly_observed", "personal_memory"
+        }:
+            raise ValueError("invalid quest knowledge basis")
         if not self.source_ids:
             raise ValueError("quest index entries require at least one source")
 

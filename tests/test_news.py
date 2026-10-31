@@ -60,7 +60,7 @@ class TeyvatChronicleTests(unittest.TestCase):
                 str(root / "datasets/teyvat/news_reports.jsonl"),
                 str(db),
             )
-            self.assertEqual(counts, (26, 50, 50))
+            self.assertEqual(counts, (35, 50, 50))
             with TeyvatChronicleStore(db) as store:
                 self.assertEqual(len(store.search_beats(region="Mondstadt")), 3)
                 self.assertEqual(len(store.search_beats(region="Liyue")), 5)
@@ -72,6 +72,10 @@ class TeyvatChronicleTests(unittest.TestCase):
                 self.assertEqual(len(store.search_beats(region="Natlan")), 7)
                 self.assertEqual(len(store.search_beats(region="Nod-Krai")), 9)
                 self.assertEqual(len(store.search_beats(region="Snezhnaya")), 4)
+                self.assertTrue(store.search_beats("Song of the Dragon and Freedom")[0]["public_summary"])
+                hidden = store.search_beats("We Will Be Reunited")
+                self.assertEqual(hidden[0]["public_knowledge_level"], "not_publicly_known")
+                self.assertEqual(hidden[0]["public_summary"], "")
                 self.assertEqual(len(store.known_news("Fontaine")), 6)
                 self.assertEqual(len(store.known_news("Natlan")), 7)
                 all_beats = store.search_beats(limit=100)

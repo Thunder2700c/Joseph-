@@ -73,15 +73,21 @@ class RecallContextBuilder:
 
         if self.chronicle is not None:
             beats = self.chronicle.search_beats(user_message, limit=news_reports)
-            if beats:
+            public_beats = [item for item in beats if item.get("public_summary")]
+            if public_beats:
                 lines = [
-                    f"- {item['region']} — {item['beat_title']}: {item['summary']} "
-                    "(canon reference; not a personal memory unless separately marked witnessed)"
-                    for item in beats
+                    f"- {item['region']} — {item['beat_title']}: "
+                    f"{item['public_summary']} "
+                    f"(public knowledge level={item['public_knowledge_level']}; "
+                    "broad public outcome only)"
+                    for item in public_beats
                 ]
-                sections.append("TEYVAT STORY AND CANON REFERENCES\n" + "\n".join(lines))
+                sections.append("PUBLICLY KNOWN TEYVAT STORY OUTCOMES\n" + "\n".join(lines))
 
-            reports = self.chronicle.known_news(user_message, limit=news_reports)
+            reports = [
+                item for item in self.chronicle.known_news(user_message, limit=news_reports)
+                if item["beat"].get("public_summary")
+            ]
             if reports:
                 lines = [
                     f"- Hu Tao learned via {item['report']['channel']} "
@@ -93,13 +99,15 @@ class RecallContextBuilder:
 
         if self.quest_catalogue is not None:
             quests = self.quest_catalogue.search(user_message, limit=8)
-            if quests:
+            public_quests = [item for item in quests if item.public_summary]
+            if public_quests:
                 lines = [
-                    f"- {item.title} [{item.quest_type}; {item.region}; "
-                    f"index={item.index_state}; summary={item.summary_state}]"
-                    for item in quests
+                    f"- {item.parent_quest_id} — {item.title}: {item.public_summary} "
+                    f"(public knowledge level={item.public_knowledge_level}; "
+                    "broad public outcome only)"
+                    for item in public_quests
                 ]
-                sections.append("QUEST CATALOGUE MATCHES (TITLE INDEX, NOT FULL PLOT)\n" + "\n".join(lines))
+                sections.append("PUBLICLY KNOWN CHARACTER QUEST OUTCOMES\n" + "\n".join(lines))
 
         if self.common_knowledge is not None:
             common = self.common_knowledge.search(user_message, limit=10)
