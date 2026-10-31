@@ -28,11 +28,11 @@ The script streams rows, deduplicates normalized text, generates deterministic t
 
 ## Current execution state
 
-GitHub Actions passed unit tests and Python compilation for commit a99883fd762d387a06f87d360f7ff85b25aaf3f0. This verifies the tokenizer, data-preparation helpers and existing project tests, not the actual external dataset download or a trained model.
+GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd814: 47 unit tests passed, Python modules compiled, and a tiny two-step CPU training smoke test measured train/validation loss and saved a checkpoint. This verifies the execution path and checkpoint creation, not the actual external dataset download or useful language-model quality.
 
 No tokenizer has been fitted on Cosmopedia v2 yet, no base model has been trained, and no Hu Tao character model exists. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run therefore still needs an external machine with network and suitable training compute.
 
-The current approximately 4.94M-parameter Transformer remains a small research baseline. It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
+The current approximately 4.94M-parameter default Transformer remains a small research baseline (the 8,192-token tokenizer setting increases embedding parameters). It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The current 200-million-character corpus cap is only a pipeline pilot, roughly tens of millions of tokens, not a serious pretraining budget. For scale context, Hugging Face reports that SmolLM's 135M/360M models were trained on 600B tokens and the 1.7B model on 1T tokens; those runs also used a broader data mixture and are not a direct recipe for this project. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
 ## Commands
 
@@ -53,6 +53,10 @@ Run an experimental from-scratch baseline with validation:
     python -m training.train --input artifacts/base_language/cosmopedia-v2/train.txt --validation artifacts/base_language/cosmopedia-v2/validation.txt --tokenizer artifacts/base_language/tokenizer.json --output artifacts/base_language/base-pilot.pt --steps 10000 --batch-size 8 --seq-len 256 --d-model 256 --n-layers 6 --n-heads 8 --device cuda
 
 Token caches are generated automatically under artifacts/base_language/token_cache by default. They use disk-backed int32 files so the full corpus need not be copied into RAM/VRAM. The sample command is a pilot, not the final compute recipe. Do not run a long job on a phone or 4 GB Chromebook.
+
+## Conversation-data follow-up
+
+Cosmopedia v2 supplies educational prose and stories, not authentic conversational turn structure. A candidate supplementary source is OpenAssistant OASST1: its dataset card declares Apache-2.0, provides 84,437 training and 4,401 validation messages in its ready export, and preserves parent-linked conversation trees. It also contains multilingual and synthetic/model-generated rows, so a later adapter must preserve train/validation separation, reconstruct coherent trees, filter to the selected language and reviewed human-authored records, and keep it as a small dialogue supplement rather than allowing generic assistant responses to define Hu Tao. It has not been downloaded or added to training yet.
 
 ## Remaining steps
 

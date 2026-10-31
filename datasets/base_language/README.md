@@ -17,7 +17,7 @@ The project uses only the generated text field. It deliberately excludes prompt 
 
 This is a general language pretraining source, not Hu Tao dialogue and not a source of her biography. It gives the model broad English written-language patterns. It does not by itself provide natural multi-turn chat, reliable instruction following, Hu Tao's voice or Teyvat knowledge. Those require separate original dialogue and character training after the former-life material is reviewed.
 
-The default 200-million-character cap is a pilot-scale subset, not evidence that the final model has received enough training tokens. The manifest reports an approximate token count only; exact token counts are produced after fitting the tokenizer.
+The default 200-million-character cap is a pilot-scale subset, not evidence that the final model has received enough training tokens. It corresponds only to tens of millions of tokens by a rough characters-per-token estimate. For scale context, Hugging Face reports 600 billion training tokens for SmolLM 135M/360M and 1 trillion for SmolLM 1.7B; this is a different model/data mixture, but it demonstrates how far a small pilot is from full pretraining scale. The manifest reports an approximate token count only; exact token counts are produced after fitting the tokenizer.
 
 ## Licence and attribution
 
@@ -28,3 +28,16 @@ Suggested attribution:
 > Hugging Face Smol Models Research, SmolLM-Corpus (Cosmopedia v2), https://huggingface.co/datasets/HuggingFaceTB/smollm-corpus
 
 The FineWeb-Edu-Dedup and Python-Edu configurations are not included in this first source selection. FineWeb-Edu has additional Common Crawl terms; Python-Edu has separate upstream code licensing. They require their own review before inclusion.
+
+
+## Supplementary dialogue source (not yet ingested)
+
+OpenAssistant OASST1 is a possible small dialogue supplement, not a replacement for large-scale language pretraining:
+
+- Dataset: https://huggingface.co/datasets/OpenAssistant/oasst1
+- Licence shown on the dataset card: Apache-2.0.
+- Ready-for-export parquet split: 84,437 training messages and 4,401 validation messages.
+- It has parent-linked conversation trees, language labels, review metadata, and a synthetic flag. If selected, keep conversation structure, respect the publisher's train/validation split, filter carefully to reviewed English human-authored messages, and preserve Apache-2.0 notices.
+- It has not been downloaded, transformed, or added to the present training corpus. It should be tested as a small dialogue supplement only; Hu Tao's eventual output identity must come from her own separately reviewed character-dialogue training.
+
+Do not mix generic assistant dialogue into Hu Tao-specific training as if it were her voice.

@@ -2,7 +2,8 @@
 
 > **Read this file first when continuing work in a new ChatGPT conversation.** It is the project's handoff summary and decision record. After reading it, inspect the current `main` branch and the linked source files before making changes; this document can become stale as the repository evolves.
 
-**Last handoff review:** 2026-10-31  
+**Last handoff review:** 2026-10-31
+**Latest language-foundation commit:** `9f9005a1f92b955e69d85dc97328042aa97bd814` (CI run #69 passed, 47 tests)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
@@ -137,7 +138,7 @@ Current default configuration in `joseph/config.py` remains a small baseline: vo
 
 ### Required training philosophy
 
-The model should first learn usable language ability and then receive direct character-specific training. It must not be a generic assistant that only sounds like Hu Tao when given a large prompt.
+The model should first learn usable language ability and then receive direct character-specific training. It must not be a generic assistant that only sounds like Hu Tao when given a large prompt. The general-language pilot uses Cosmopedia v2 and is not enough by itself; OASST1 is a candidate small conversation supplement but has not yet been ingested. See `LANGUAGE_FOUNDATION.md` for current corpus, test and scale status.
 
 Training examples should use Hu Tao as the speaking identity. The intended conversation serialization is user input followed by Hu Tao output, e.g. `<|user|>` and `<|hutao|>`, rather than training her as the generic `<|assistant|>` speaker. The current tokenizer now reserves ten fixed IDs: pad/BOS/EOS/UNK, system, user, Hu Tao, memory, report and end-of-turn. The Hu Tao speaker token is dedicated (`<|hutao|>`). The current base-language corpus tooling uses disk-backed token caches; the full character conversation serializer and inference decoder still require later integration.
 
