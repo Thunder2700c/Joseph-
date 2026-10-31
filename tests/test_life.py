@@ -62,32 +62,42 @@ class LifeMemoryTests(unittest.TestCase):
             )
             with LifeMemoryStore(db) as store:
                 builder = LifeBuilder(store, root / "character/life_stages.json")
-                self.assertEqual(len(store.memories()), 33)
+                self.assertEqual(len(store.memories()), 80)
                 self.assertFalse(builder.ready_to_awaken())
                 progress = {row["stage_id"]: row for row in builder.progress()}
-                self.assertEqual(progress["01_origins_and_family"]["memory_count"], 0)
+                self.assertEqual(progress["01_origins_and_family"]["memory_count"], 1)
+                self.assertEqual(progress["01_origins_and_family"]["missing_coverage"], ["border_journey", "childhood_chronology", "early_vision"])
                 self.assertEqual(progress["02_wangsheng_learning"]["memory_count"], 0)
-                self.assertEqual(progress["03_becoming_director"]["memory_count"], 3)
+                self.assertEqual(progress["03_becoming_director"]["memory_count"], 11)
                 self.assertEqual(progress["03_becoming_director"]["missing_coverage"], [])
-                self.assertEqual(progress["04_relationships_and_daily_life"]["memory_count"], 14)
+                self.assertEqual(progress["04_relationships_and_daily_life"]["memory_count"], 28)
                 self.assertEqual(progress["04_relationships_and_daily_life"]["missing_coverage"], [])
                 self.assertEqual(progress["05_personal_quests_and_appearances"]["memory_count"], 6)
-                self.assertEqual(progress["06_liyue_and_teyvat_knowledge"]["memory_count"], 6)
-                self.assertIn(
-                    "mondstadt",
-                    progress["06_liyue_and_teyvat_knowledge"]["missing_coverage"],
-                )
-                self.assertEqual(progress["07_world_history_and_archon_events"]["memory_count"], 4)
+                self.assertEqual(progress["06_liyue_and_teyvat_knowledge"]["memory_count"], 23)
+                self.assertEqual(progress["06_liyue_and_teyvat_knowledge"]["missing_coverage"], [])
+                self.assertEqual(progress["07_world_history_and_archon_events"]["memory_count"], 11)
                 self.assertEqual(
                     progress["07_world_history_and_archon_events"]["missing_coverage"],
-                    [
-                        "ancient_history", "archon_quests", "cosmology",
-                        "interludes", "unresolved_mysteries",
-                        "version_provenance", "world_quests",
-                    ],
+                    [],
                 )
                 with self.assertRaises(RuntimeError):
                     builder.perform_awakening(HuTaoPersona())
+
+
+    def test_personal_profile_and_social_world_are_structured(self):
+        root = Path(__file__).resolve().parents[1]
+        profile = json.loads((root / "character/identity_profile.json").read_text(encoding="utf-8"))
+        world = json.loads((root / "character/teyvat_social_world.json").read_text(encoding="utf-8"))
+        self.assertEqual(profile["identity"]["date_of_birth_user_au"], "2006-07-15")
+        self.assertEqual(profile["official_profile"]["birthday"], "July 15")
+        self.assertEqual(profile["physical_profile"]["weight_kg"], 48)
+        self.assertEqual(profile["physical_profile"]["height_cm"], 156)
+        self.assertIsNone(profile["official_profile"]["height_cm"])
+        self.assertIsNone(profile["official_profile"]["weight_kg"])
+        self.assertEqual(len(world["nations"]), 8)
+        self.assertEqual(len(world["notable_people_by_region"]), 8)
+        self.assertIn("political_literacy", world)
+        self.assertTrue(any(person["name"] == "Xingqiu" for person in profile["relationships"]))
 
     def test_stage_completion_requires_all_coverage_tags(self):
         with tempfile.TemporaryDirectory() as directory:

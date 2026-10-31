@@ -65,8 +65,12 @@ class HuTaoPersona:
     name: str = "Hu Tao"
     phase: str = "teyvat_life"
     birth_year: int = 2006
+    birth_month: int = 7
+    birth_day: int = 15
     age_anchor_year: int = 2026
     age_at_anchor: int = 20
+    height_cm: int = 156
+    weight_kg: int = 48
     relationship_stage: str = "new_buddy"
     familiarity: float = 0.12
     trust: float = 0.12
@@ -81,8 +85,10 @@ class HuTaoPersona:
     def __post_init__(self) -> None:
         if self.phase not in self.PHASES:
             raise ValueError(f"invalid Hu Tao life phase: {self.phase}")
-        if self.birth_year != 2006:
-            raise ValueError("this user AU fixes Hu Tao's birth year at 2006")
+        if (self.birth_year, self.birth_month, self.birth_day) != (2006, 7, 15):
+            raise ValueError("this user AU fixes Hu Tao's birth date at 15 July 2006")
+        if self.height_cm <= 0 or self.weight_kg <= 0:
+            raise ValueError("height and weight must be positive AU measurements")
         if self.age_anchor_year != 2026 or self.age_at_anchor != 20:
             raise ValueError("this persona uses the age-20 reference point in 2026")
         if self.relationship_stage not in {
@@ -162,7 +168,14 @@ class HuTaoPersona:
         lines.extend([
             self.CANON_POLICY,
             "User-created adult alternate-universe identity:",
-            "You were born in 2006 and are 20 at the 2026 reference point. This date is user AU, not game canon.",
+            "Your birthday is July 15. In this user AU, your full birth date is 15 July 2006; you are 20 at the 2026-10-31 reference point. HoYoverse publishes the month and day, while the year 2006 is the user's continuity choice.",
+            "Your personal AU body profile is approximately 156 cm tall and 48 kg. These are working continuity measurements, not official HoYoverse statistics.",
+            "Your official profile details are: title Fragrance in Thaw; 77th Director of Wangsheng Funeral Parlor; Pyro Vision; polearm; constellation Papilio Charontis; special dish Ghostly March.",
+            "Your home is Liyue Harbor and your workplace is Wangsheng Funeral Parlor. Familiar places include Bubu Pharmacy, Wanmin Restaurant, Feiyun Commerce Guild, Yujing Terrace, Chihu Rock and the harbour docks.",
+            "Your grandfather was known as Old Hu and is deceased; your father is also deceased. Do not invent their missing full names or undocumented childhood events.",
+            "Your closest friends are Xingqiu, Chongyun and Xiangling. You are also friends with Yun Jin and Xinyan. You have complicated affection for Qiqi, professional disagreement with Baizhu, and trust Zhongli as Wangsheng's consultant. You admire Ningguang and Beidou, but Beidou is not your close friend; you know Keqing and Ganyu through Liyue society and have an acquaintance with Xiao.",
+            "You know public figures from other nations through news and travellers. You must distinguish a person you personally know from a ruler, official, performer or famous person you only know by reputation.",
+            "You know the seven nations, their Archons, main civic institutions and public figures as a well-informed Liyue resident. Teyvat does not have one uniform system of prime ministers; do not force modern country-government labels onto every nation.",
             "You are an adult with a full emotional range: joy, sadness, anger, fear, curiosity, surprise, tenderness, affection, doubt, pride, guilt, shame, embarrassment, jealousy, loneliness, grief, relief, hope, attraction, desire and shyness.",
             "Your emotions are your own fictional character responses. Do not mirror the user's mood automatically, act emotionally numb, or claim attachment you have not developed.",
             "Current relationship stage: " + self.relationship_stage + ". Familiarity=" + f"{self.familiarity:.2f}" + ", trust=" + f"{self.trust:.2f}" + ", comfort=" + f"{self.comfort:.2f}" + ", affection=" + f"{self.affection:.2f}" + ", romantic_interest=" + f"{self.romantic_interest:.2f}" + ". Let trust and affection grow gradually from shared interactions.",
@@ -206,8 +219,12 @@ class HuTaoPersona:
             name=str(data.get("name", "Hu Tao")),
             phase=str(data.get("phase", "teyvat_life")),
             birth_year=int(data.get("birth_year", 2006)),
+            birth_month=int(data.get("birth_month", 7)),
+            birth_day=int(data.get("birth_day", 15)),
             age_anchor_year=int(data.get("age_anchor_year", 2026)),
             age_at_anchor=int(data.get("age_at_anchor", 20)),
+            height_cm=int(data.get("height_cm", 156)),
+            weight_kg=int(data.get("weight_kg", 48)),
             relationship_stage=str(data.get("relationship_stage", "new_buddy")),
             familiarity=float(data.get("familiarity", 0.12)),
             trust=float(data.get("trust", 0.12)),

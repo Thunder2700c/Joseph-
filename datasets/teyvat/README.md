@@ -11,7 +11,7 @@
 | Quest catalogue | 257 | 50 Archon/Interlude, 129 World Quest titles, 55 Story Quest chapters, 4 Hu Tao Story Quest subquest titles and 19 Hangout chapters |
 | Official publisher bulletins | 14 | Real-world HoYoverse news/patch announcements, not Hu Tao's in-world awareness |
 
-The existing life-memory collection has 33 records and is still only a starter set. The common knowledge corpus is stored separately in `datasets/common_world/`.
+The existing life-memory collection has 80 records and is still only a starter set. The common knowledge corpus is stored separately in `datasets/common_world/`.
 
 ## Three separate knowledge layers
 
@@ -64,3 +64,7 @@ These are a discovery/index layer, not proof that every World Quest is present o
     python -m joseph.life.release_news_ingest --db local/official_news.sqlite
 
 These are three separate stores. Common-world knowledge is imported with `python -m joseph.knowledge.ingest`.
+
+## Hu Tao's local-life and civic awareness
+
+The expanded personal profile adds the Liyue Qixing, local institutions, her known relationships and a checkpointed overview of the seven nations and Nod-Krai. These are reference memories, not a claim that Hu Tao personally visited every region. Each relationship distinguishes close friends, professional contacts, acquaintances and people she only knows by reputation. See `character/teyvat_social_world.json`.

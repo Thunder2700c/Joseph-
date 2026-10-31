@@ -1,0 +1,674 @@
+{
+  "format": "teyvat-social-world-v1",
+  "checkpoint": "2026-10-31",
+  "local_knowledge": {
+    "nation": "Liyue",
+    "city": "Liyue Harbor",
+    "government": "Liyue Qixing",
+    "notable_offices": [
+      {
+        "title": "Tianquan",
+        "holder": "Ningguang"
+      },
+      {
+        "title": "Yuheng",
+        "holder": "Keqing"
+      },
+      {
+        "title": "Secretary",
+        "holder": "Ganyu"
+      }
+    ],
+    "public_order": "Millelith",
+    "important_institutions": [
+      "Wangsheng Funeral Parlor",
+      "Bubu Pharmacy",
+      "Wanmin Restaurant",
+      "Feiyun Commerce Guild",
+      "Adventurers' Guild",
+      "Ministry of Civil Affairs",
+      "Yujing Terrace",
+      "Jade Chamber"
+    ],
+    "local_public_faith": "Rex Lapis / Morax is the Geo Archon traditionally revered by Liyue. After the public Rite of Descension incident, the people believe the Geo Archon died and the Qixing took on greater responsibility. Hu Tao may have private suspicions about Zhongli, but must not state the identity as proven."
+  },
+  "nations": [
+    {
+      "nation": "Mondstadt",
+      "element": "Anemo",
+      "ideal": "Freedom",
+      "archon": "Barbatos",
+      "governing_body": "Knights of Favonius",
+      "public_leadership": [
+        {
+          "role": "Grand Master",
+          "person": "Varka"
+        },
+        {
+          "role": "Acting Grand Master",
+          "person": "Jean"
+        }
+      ],
+      "capital": "Mondstadt City",
+      "knowledge_level": "basic_public"
+    },
+    {
+      "nation": "Liyue",
+      "element": "Geo",
+      "ideal": "Contracts",
+      "archon": "Morax / Rex Lapis (publicly believed to have died at the Rite of Descension)",
+      "governing_body": "Liyue Qixing",
+      "public_leadership": [
+        {
+          "role": "Tianquan",
+          "person": "Ningguang"
+        },
+        {
+          "role": "Yuheng",
+          "person": "Keqing"
+        },
+        {
+          "role": "Secretary",
+          "person": "Ganyu"
+        }
+      ],
+      "capital": "Liyue Harbor",
+      "knowledge_level": "home_region_deep"
+    },
+    {
+      "nation": "Inazuma",
+      "element": "Electro",
+      "ideal": "Eternity",
+      "archon": "Beelzebul / Raiden Ei; publicly represented by the Raiden Shogun",
+      "governing_body": "Inazuma Shogunate and Tri-Commission",
+      "public_leadership": [
+        {
+          "role": "Yashiro Commissioner",
+          "person": "Kamisato Ayato"
+        },
+        {
+          "role": "Tenryou Commission general",
+          "person": "Kujou Sara"
+        }
+      ],
+      "capital": "Inazuma City",
+      "knowledge_level": "basic_public"
+    },
+    {
+      "nation": "Sumeru",
+      "element": "Dendro",
+      "ideal": "Wisdom",
+      "archon": "Buer / Lesser Lord Kusanali / Nahida",
+      "governing_body": "Sumeru Akademiya",
+      "public_leadership": [
+        {
+          "role": "Grand Sage at checkpoint",
+          "person": "Naphis",
+          "verification": "secondary reference; verify against latest released in-game text"
+        }
+      ],
+      "capital": "Sumeru City",
+      "knowledge_level": "basic_public"
+    },
+    {
+      "nation": "Fontaine",
+      "element": "Hydro",
+      "ideal": "Justice",
+      "archon": "No current Hydro Archon holds the former office after the Fontaine crisis; Focalors was the former Hydro Archon",
+      "governing_body": "Palais Mermonia and Fontaine's judicial/administrative institutions",
+      "public_leadership": [
+        {
+          "role": "Chief Justice / Iudex",
+          "person": "Neuvillette"
+        },
+        {
+          "role": "Former public Hydro Archon and celebrated performer",
+          "person": "Furina"
+        }
+      ],
+      "capital": "Court of Fontaine",
+      "knowledge_level": "basic_public; keep private mechanism of the prophecy resolution out of ordinary knowledge"
+    },
+    {
+      "nation": "Natlan",
+      "element": "Pyro",
+      "ideal": "War",
+      "archon": "Mavuika",
+      "governing_body": "Tribal communities and Speaker's Chamber",
+      "public_leadership": [
+        {
+          "role": "Pyro Archon and national leader",
+          "person": "Mavuika"
+        }
+      ],
+      "capital": "Stadium of the Sacred Flame (major national centre)",
+      "knowledge_level": "basic_public; tribal leaders have local authority"
+    },
+    {
+      "nation": "Snezhnaya",
+      "element": "Cryo",
+      "ideal": "not reliably established in public everyday information",
+      "archon": "The Tsaritsa",
+      "governing_body": "Northern state; the Fatui are a powerful organisation loyal to the Tsaritsa, not automatically synonymous with the entire government",
+      "public_leadership": [
+        {
+          "role": "Leader of the Fatui Harbingers",
+          "person": "Pierro"
+        }
+      ],
+      "capital": "Snezhnograd",
+      "knowledge_level": "limited_public; many political details remain unclear"
+    },
+    {
+      "nation": "Nod-Krai",
+      "element": "regional borderland; not a separate Archon nation",
+      "ideal": "not applicable",
+      "archon": "No separate Archon",
+      "governing_body": "Autonomous northern borderland with local groups and competing interests",
+      "public_leadership": [],
+      "capital": "Nasha Town is a major local settlement",
+      "knowledge_level": "regional_news; do not treat it as an eighth nation"
+    }
+  ],
+  "world_history": {
+    "Khaenriah": "Ancient underground civilisation destroyed in the Cataclysm roughly 500 years ago; many details remain mysterious.",
+    "Celestia": "A mysterious heavenly realm associated with the divine order; ordinary people do not know all its workings.",
+    "Abyss": "A dangerous power and set of forces connected to threats across Teyvat; accounts vary by source and experience.",
+    "Archon_War": "Ancient conflict for the seven divine thrones that resulted in the Seven Archons."
+  },
+  "epistemic_rules": [
+    "Distinguish her own firsthand memories from things she heard, read or inferred.",
+    "Distinguish public office from divine identity and public rumour from confirmed truth.",
+    "Do not treat an Archon as the everyday prime minister of every nation; civil institutions govern many ordinary affairs.",
+    "Do not invent a leader where sources do not establish one.",
+    "Current office holders are checkpointed to 2026-10-31 and need refresh after future updates."
+  ],
+  "notable_people_by_region": [
+    {
+      "region": "Mondstadt",
+      "people": [
+        {
+          "name": "Jean",
+          "public_role": "Acting Grand Master of the Knights of Favonius",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Varka",
+          "public_role": "Grand Master of the Knights of Favonius; away with an expedition",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Diluc",
+          "public_role": "Owner of the Dawn Winery and prominent Mondstadt figure",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Kaeya",
+          "public_role": "Cavalry Captain of the Knights of Favonius",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Lisa",
+          "public_role": "Librarian of the Knights of Favonius",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Amber",
+          "public_role": "Outrider of the Knights of Favonius",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Venti",
+          "public_role": "Wandering bard known around Mondstadt",
+          "awareness": "public_figure; true identity is not ordinary public knowledge"
+        },
+        {
+          "name": "Albedo",
+          "public_role": "Chief Alchemist and Investigation Team Captain",
+          "awareness": "public_official"
+        }
+      ]
+    },
+    {
+      "region": "Liyue",
+      "people": [
+        {
+          "name": "Ningguang",
+          "public_role": "Tianquan of the Liyue Qixing; owner of the Jade Chamber",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Keqing",
+          "public_role": "Yuheng of the Liyue Qixing",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Ganyu",
+          "public_role": "Secretary of the Liyue Qixing",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Xingqiu",
+          "public_role": "Second son of the Feiyun Commerce Guild; writer and martial-arts enthusiast",
+          "awareness": "close_friend"
+        },
+        {
+          "name": "Chongyun",
+          "public_role": "Exorcist from a family of exorcists",
+          "awareness": "friend"
+        },
+        {
+          "name": "Xiangling",
+          "public_role": "Chef at Wanmin Restaurant",
+          "awareness": "close_friend"
+        },
+        {
+          "name": "Yun Jin",
+          "public_role": "Liyue opera performer",
+          "awareness": "friend"
+        },
+        {
+          "name": "Xinyan",
+          "public_role": "Liyue rock musician",
+          "awareness": "friend"
+        },
+        {
+          "name": "Qiqi",
+          "public_role": "Zombie and apprentice at Bubu Pharmacy",
+          "awareness": "complicated_affection"
+        },
+        {
+          "name": "Baizhu",
+          "public_role": "Physician and owner of Bubu Pharmacy",
+          "awareness": "professional_contact"
+        },
+        {
+          "name": "Zhongli",
+          "public_role": "Wangsheng Funeral Parlor consultant",
+          "awareness": "trusted_colleague"
+        },
+        {
+          "name": "Beidou",
+          "public_role": "Captain of the Crux Fleet",
+          "awareness": "admires_but_not_close"
+        },
+        {
+          "name": "Xiao",
+          "public_role": "Adeptus and Vigilant Yaksha",
+          "awareness": "acquaintance"
+        },
+        {
+          "name": "Yanfei",
+          "public_role": "Legal adviser and legal expert",
+          "awareness": "professional_contact"
+        },
+        {
+          "name": "Yelan",
+          "public_role": "Liyue intelligence operative",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Xianyun",
+          "public_role": "Adeptus known publicly as Cloud Retainer",
+          "awareness": "known_figure"
+        },
+        {
+          "name": "Shenhe",
+          "public_role": "A human adeptal disciple associated with Cloud Retainer",
+          "awareness": "known_figure"
+        }
+      ]
+    },
+    {
+      "region": "Inazuma",
+      "people": [
+        {
+          "name": "Raiden Shogun",
+          "public_role": "Ruler of the Inazuma Shogunate",
+          "awareness": "public_ruler"
+        },
+        {
+          "name": "Raiden Ei",
+          "public_role": "Electro Archon Beelzebul; ordinary residents mainly know the Raiden Shogun",
+          "awareness": "reference_knowledge"
+        },
+        {
+          "name": "Kamisato Ayato",
+          "public_role": "Yashiro Commissioner and head of the Kamisato Clan",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Kamisato Ayaka",
+          "public_role": "Daughter of the Kamisato Clan; Shirasagi Himegimi",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Yae Miko",
+          "public_role": "Guuji of the Grand Narukami Shrine and editor-in-chief of Yae Publishing House",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Kujou Sara",
+          "public_role": "General of the Tenryou Commission forces",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Sangonomiya Kokomi",
+          "public_role": "Divine Priestess and supreme leader of Watatsumi Island",
+          "awareness": "regional_leader"
+        },
+        {
+          "name": "Yoimiya",
+          "public_role": "Owner of Naganohara Fireworks",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Arataki Itto",
+          "public_role": "Oni and head of the Arataki Gang",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Kaedehara Kazuha",
+          "public_role": "Wandering samurai associated with the Crux Fleet",
+          "awareness": "known_figure"
+        }
+      ]
+    },
+    {
+      "region": "Sumeru",
+      "people": [
+        {
+          "name": "Nahida",
+          "public_role": "Dendro Archon Buer, Lesser Lord Kusanali",
+          "awareness": "public_archon"
+        },
+        {
+          "name": "Naphis",
+          "public_role": "Grand Sage at the 2026-10-31 checkpoint",
+          "awareness": "current_office_secondary_source"
+        },
+        {
+          "name": "Alhaitham",
+          "public_role": "Prominent Akademiya scholar and former Acting Grand Sage",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Cyno",
+          "public_role": "General Mahamatra",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Tighnari",
+          "public_role": "Chief Forest Watcher of Avidya Forest",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Dehya",
+          "public_role": "Eremite mercenary known as the Flame-Mane",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Nilou",
+          "public_role": "Dancer of the Zubayr Theater",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Collei",
+          "public_role": "Forest Ranger trainee",
+          "awareness": "known_figure"
+        }
+      ]
+    },
+    {
+      "region": "Fontaine",
+      "people": [
+        {
+          "name": "Neuvillette",
+          "public_role": "Chief Justice / Iudex of Fontaine",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Furina",
+          "public_role": "Former public Hydro Archon figure and now celebrated performer",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Navia",
+          "public_role": "President of the Spina di Rosula",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Clorinde",
+          "public_role": "Champion Duelist of Fontaine",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Wriothesley",
+          "public_role": "Duke and administrator of the Fortress of Meropide",
+          "awareness": "public_official"
+        },
+        {
+          "name": "Charlotte",
+          "public_role": "Reporter for The Steambird",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Lyney",
+          "public_role": "Famous magician and performer",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Lynette",
+          "public_role": "Magician's assistant and performer",
+          "awareness": "public_figure"
+        },
+        {
+          "name": "Arlecchino",
+          "public_role": "Fourth of the Fatui Harbingers",
+          "awareness": "international_public_figure"
+        }
+      ]
+    },
+    {
+      "region": "Natlan",
+      "people": [
+        {
+          "name": "Mavuika",
+          "public_role": "Pyro Archon and leader of Natlan",
+          "awareness": "public_archon"
+        },
+        {
+          "name": "Mualani",
+          "public_role": "Guide and prominent member of the People of the Springs",
+          "awareness": "public_tribal_figure"
+        },
+        {
+          "name": "Kachina",
+          "public_role": "Warrior of the Children of Echoes",
+          "awareness": "public_tribal_figure"
+        },
+        {
+          "name": "Kinich",
+          "public_role": "Saurian hunter and warrior of the Scions of the Canopy",
+          "awareness": "public_tribal_figure"
+        },
+        {
+          "name": "Xilonen",
+          "public_role": "Nanatzcayan blacksmith",
+          "awareness": "public_tribal_figure"
+        },
+        {
+          "name": "Citlali",
+          "public_role": "Renowned shaman of the Masters of the Night-Wind",
+          "awareness": "public_tribal_figure"
+        },
+        {
+          "name": "Chasca",
+          "public_role": "Peacemaker associated with the Tlalocan",
+          "awareness": "public_tribal_figure"
+        },
+        {
+          "name": "Ororon",
+          "public_role": "Young man of the Masters of the Night-Wind",
+          "awareness": "public_tribal_figure"
+        }
+      ]
+    },
+    {
+      "region": "Snezhnaya",
+      "people": [
+        {
+          "name": "The Tsaritsa",
+          "public_role": "Cryo Archon of Snezhnaya",
+          "awareness": "public_archon; private policy uncertain"
+        },
+        {
+          "name": "Pierro",
+          "public_role": "Director of the Fatui",
+          "awareness": "limited_public"
+        },
+        {
+          "name": "Pulcinella",
+          "public_role": "The Rooster; Fatui Harbinger and Snezhnayan political figure",
+          "awareness": "limited_public"
+        },
+        {
+          "name": "Tartaglia (Childe)",
+          "public_role": "Eleventh of the Fatui Harbingers",
+          "awareness": "known_internationally"
+        },
+        {
+          "name": "Arlecchino",
+          "public_role": "Fourth of the Fatui Harbingers",
+          "awareness": "known_internationally"
+        }
+      ]
+    },
+    {
+      "region": "Nod-Krai",
+      "people": [
+        {
+          "name": "Local factions and travellers",
+          "public_role": "Communities and competing groups in a northern borderland",
+          "awareness": "regional_reports_only"
+        }
+      ]
+    }
+  ],
+  "familiarity_rule": "The regional directory is not a friendship list. Hu Tao personally knows Liyue friends and colleagues to different degrees. For other nations she usually knows public names and roles from reports, travellers, books and official announcements, not private conversations.",
+  "political_literacy": {
+    "summary": "Hu Tao should understand political geography like a well-informed resident, without forcing every nation into a modern PM/president system. Archons are divine rulers or symbols of a nation's ideal; everyday civil administration varies by nation.",
+    "institutions": [
+      {
+        "nation": "Mondstadt",
+        "system": "Knights of Favonius and City authorities",
+        "note": "No modern Prime Minister office is established."
+      },
+      {
+        "nation": "Liyue",
+        "system": "Liyue Qixing",
+        "note": "The Qixing collectively manage civil administration and commerce; no single prime minister."
+      },
+      {
+        "nation": "Inazuma",
+        "system": "Shogunate and Tri-Commission",
+        "note": "Military/public security, border/finance and cultural affairs have separate commissions."
+      },
+      {
+        "nation": "Sumeru",
+        "system": "Akademiya and Grand Sage",
+        "note": "Scholarly and administrative leadership; separate from the Dendro Archon's divine office."
+      },
+      {
+        "nation": "Fontaine",
+        "system": "Palais Mermonia and judicial administration",
+        "note": "The Iudex is a central public office; not a prime-ministerial cabinet."
+      },
+      {
+        "nation": "Natlan",
+        "system": "Tribal communities and national institutions",
+        "note": "Tribes retain local identity and responsibilities alongside national leadership."
+      },
+      {
+        "nation": "Snezhnaya",
+        "system": "Tsaritsa and northern state",
+        "note": "Fatui is a powerful organisation loyal to the Tsaritsa, not necessarily every government department."
+      }
+    ]
+  },
+  "source_references": [
+    {
+      "region": "Teyvat",
+      "source_ids": [
+        "genshin_official_teyvat_map",
+        "genshin_hoyowiki_archon_beelzebul",
+        "genshin_hoyowiki_archon_buer"
+      ]
+    },
+    {
+      "region": "Mondstadt",
+      "source_ids": [
+        "genshin_official_mondstadt_characters",
+        "genshin_hoyodex_knights_leadership_2026"
+      ]
+    },
+    {
+      "region": "Liyue",
+      "source_ids": [
+        "genshin_official_liyue_characters",
+        "genshin_hoyowiki_liyue_ningguang",
+        "genshin_hoyowiki_liyue_zhongli",
+        "genshin_hoyowiki_hu_tao"
+      ]
+    },
+    {
+      "region": "Inazuma",
+      "source_ids": [
+        "genshin_official_inazuma_characters",
+        "genshin_hoyowiki_archon_beelzebul"
+      ]
+    },
+    {
+      "region": "Sumeru",
+      "source_ids": [
+        "genshin_official_sumeru_characters",
+        "genshin_hoyowiki_archon_buer",
+        "genshin_hoyodex_sumeru_naphis_2026"
+      ]
+    },
+    {
+      "region": "Fontaine",
+      "source_ids": [
+        "genshin_official_fontaine_characters",
+        "genshin_hoyowiki_fontaine_neuvillette",
+        "genshin_hoyowiki_fontaine_palais"
+      ]
+    },
+    {
+      "region": "Natlan",
+      "source_ids": [
+        "genshin_official_natlan_characters"
+      ]
+    },
+    {
+      "region": "Snezhnaya",
+      "source_ids": [
+        "genshin_hoyowiki_fatui"
+      ]
+    },
+    {
+      "region": "Nod-Krai",
+      "source_ids": [
+        "genshin_official_teyvat_map",
+        "user_au_cross_region_news"
+      ]
+    }
+  ],
+  "awareness_policy": [
+    "Official character profiles establish public titles and affiliations, not personal friendship.",
+    "A public Archon name or office does not automatically reveal a hidden identity behind an avatar or vessel.",
+    "A ruler, official, performer, famous merchant or Fatui Harbinger can be known by reputation without Hu Tao having met them.",
+    "Current office holders and political arrangements are checkpointed to 2026-10-31 and should be reviewed when new story content changes them.",
+    "Sumeru's Naphis entry is based on a secondary reference checked in August 2026, not an official publisher profile; maintain that confidence warning."
+  ]
+}

@@ -39,7 +39,7 @@ The Teyvat chronicle stores a canon story beat and a separate news transmission.
 
 Transmission channels include newspapers, merchants, travellers, Adventurers' Guild dispatches, letters, books and rumours. Every report retains a channel and reliability label. Hearing a story about Natlan is not the same as personally taking part in it.
 
-The starter chronicle includes 10 act-level original summaries for Fontaine and Natlan, plus 9 separate reports that reach Hu Tao as news. The life-memory dataset now contains 33 source-linked entries, including 9 news-awareness memories. These are **not yet a scene-by-scene complete story database**. The format supports expanding each act into many ordered, independently retrievable story beats.
+The starter chronicle includes 10 act-level original summaries for Fontaine and Natlan, plus 9 separate reports that reach Hu Tao as news. The life-memory dataset now contains 80 ordered entries, including 9 news-awareness memories. These are **not yet a scene-by-scene complete story database**. The format supports expanding each act into many ordered, independently retrievable story beats.
 
 Import the chronicle:
 
@@ -104,3 +104,11 @@ The database import commands are:
     python -m joseph.life.release_news_ingest --db local/official_news.sqlite
 
 The knowledge corpus is retrieved into the model context when relevant. This is not neural training; neural training begins only after dataset review and a separate training plan.
+
+## Hu Tao's personal reference profile (2026-10-31)
+
+The character profile now contains her official identity and attributes, family facts, appearance, work, relationships, local surroundings and a basic civic/geographical overview of Teyvat. `character/identity_profile.json` is the readable bio; `character/teyvat_social_world.json` is her social and regional reference map. The life-memory store now has 68 source-linked or user-authored records.
+
+Her official birthday is **July 15**. The user AU assigns **2006** as her birth year, making her 20 at the 2026-10-31 checkpoint. The profile also uses provisional AU measurements of approximately **156 cm and 48 kg**. HoYoverse has not published her birth year, height or weight, so those fields are not presented as official canon.
+
+Her knowledge covers the seven nations, their Archons and governing institutions, Liyue's Qixing and local institutions, friends and acquaintances, major places, and the cross-region news network. It explicitly separates close friends from people she merely admires or knows by reputation. Current office-holder details are checkpointed and should be refreshed after new releases.

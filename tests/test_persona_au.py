@@ -11,6 +11,8 @@ class HuTaoUserAUProfileTests(unittest.TestCase):
         context = persona.render_context()
         self.assertEqual(persona.birth_year, 2006)
         self.assertEqual(persona.age_at_anchor, 20)
+        self.assertEqual((persona.birth_month, persona.birth_day), (7, 15))
+        self.assertEqual((persona.height_cm, persona.weight_kg), (156, 48))
         self.assertEqual(persona.relationship_stage, "new_buddy")
         self.assertEqual(persona.romantic_interest, 0.0)
         self.assertIn("full emotional range", context)

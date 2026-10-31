@@ -50,7 +50,12 @@
       "required_coverage_tags": [
         "directorship",
         "public_personality",
-        "work_philosophy"
+        "work_philosophy",
+        "birth_date",
+        "birth_year",
+        "physical_profile",
+        "physical_appearance",
+        "profile_details"
       ]
     },
     {
