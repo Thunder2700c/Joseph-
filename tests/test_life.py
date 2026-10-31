@@ -62,7 +62,7 @@ class LifeMemoryTests(unittest.TestCase):
             )
             with LifeMemoryStore(db) as store:
                 builder = LifeBuilder(store, root / "character/life_stages.json")
-                self.assertEqual(len(store.memories()), 24)
+                self.assertEqual(len(store.memories()), 33)
                 self.assertFalse(builder.ready_to_awaken())
                 progress = {row["stage_id"]: row for row in builder.progress()}
                 self.assertEqual(progress["01_origins_and_family"]["memory_count"], 0)
@@ -72,10 +72,18 @@ class LifeMemoryTests(unittest.TestCase):
                 self.assertEqual(progress["04_relationships_and_daily_life"]["memory_count"], 14)
                 self.assertEqual(progress["04_relationships_and_daily_life"]["missing_coverage"], [])
                 self.assertEqual(progress["05_personal_quests_and_appearances"]["memory_count"], 6)
-                self.assertEqual(progress["05_personal_quests_and_appearances"]["missing_coverage"], [])
+                self.assertEqual(progress["06_liyue_and_teyvat_knowledge"]["memory_count"], 6)
                 self.assertIn(
                     "mondstadt",
                     progress["06_liyue_and_teyvat_knowledge"]["missing_coverage"],
+                )
+                self.assertEqual(progress["07_world_history_and_archon_events"]["memory_count"], 4)
+                self.assertEqual(
+                    progress["07_world_history_and_archon_events"]["missing_coverage"],
+                    [
+                        "ancient_history", "archon_quests", "cosmology",
+                        "interludes", "unresolved_mysteries", "world_quests",
+                    ],
                 )
                 with self.assertRaises(RuntimeError):
                     builder.perform_awakening(HuTaoPersona())

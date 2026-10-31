@@ -122,7 +122,11 @@
         "geography",
         "culture",
         "history",
-        "factions"
+        "factions",
+        "cross_region_news_channels",
+        "fontaine_regional_news",
+        "natlan_regional_news",
+        "off_region_quest_summaries"
       ]
     },
     {
@@ -142,7 +146,12 @@
         "ancient_history",
         "cosmology",
         "unresolved_mysteries",
-        "version_provenance"
+        "version_provenance",
+        "fontaine_archon_chapter",
+        "natlan_archon_chapter",
+        "reported_not_witnessed",
+        "news_reliability_and_provenance",
+        "version_release_cutoff"
       ]
     },
     {
