@@ -29,6 +29,6 @@ The lifecycle manager requires all stage dependencies, source checks, review sta
 
 The life-memory store also receives these facts in individual retrievable records. Their insertion does not mark any life stage complete; the awakening remains locked until all missing childhood, Wangsheng training and broader lore topics are researched and reviewed.
 
-The collection now contains 93 ordered records. Recent additions cover Hu Tao's business philosophy, bespoke funeral arrangements, after-hours consultant lessons, Zhongli's teaching role, her Adventurers' Guild outreach, a specific potential-client outing, and a flexible ordinary-day AU routine. These are still starter resources; they do not complete all childhood, Wangsheng training, world quests, histories or versioned appearances.
+The collection now contains 95 ordered records. Recent additions cover Hu Tao's business philosophy, bespoke funeral arrangements, after-hours consultant lessons, Zhongli's teaching role, her Adventurers' Guild outreach, a specific potential-client outing, and a flexible ordinary-day AU routine. These are still starter resources; they do not complete all childhood, Wangsheng training, world quests, histories or versioned appearances.
 
 

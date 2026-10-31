@@ -72,7 +72,7 @@ class LifeMemoryTests(unittest.TestCase):
             )
             with LifeMemoryStore(db) as store:
                 builder = LifeBuilder(store, root / "character/life_stages.json")
-                self.assertEqual(len(store.memories()), 93)
+                self.assertEqual(len(store.memories()), 95)
                 self.assertFalse(builder.ready_to_awaken())
                 progress = {row["stage_id"]: row for row in builder.progress()}
                 self.assertEqual(progress["01_origins_and_family"]["memory_count"], 5)
@@ -84,9 +84,9 @@ class LifeMemoryTests(unittest.TestCase):
                 )
                 self.assertEqual(progress["03_becoming_director"]["memory_count"], 14)
                 self.assertEqual(progress["03_becoming_director"]["missing_coverage"], [])
-                self.assertEqual(progress["04_relationships_and_daily_life"]["memory_count"], 31)
+                self.assertEqual(progress["04_relationships_and_daily_life"]["memory_count"], 32)
                 self.assertEqual(progress["04_relationships_and_daily_life"]["missing_coverage"], [])
-                self.assertEqual(progress["05_personal_quests_and_appearances"]["memory_count"], 8)
+                self.assertEqual(progress["05_personal_quests_and_appearances"]["memory_count"], 9)
                 self.assertEqual(progress["06_liyue_and_teyvat_knowledge"]["memory_count"], 23)
                 self.assertEqual(progress["06_liyue_and_teyvat_knowledge"]["missing_coverage"], [])
                 self.assertEqual(progress["07_world_history_and_archon_events"]["memory_count"], 11)

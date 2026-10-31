@@ -214,10 +214,10 @@
   "daily_life": {
     "morning": "Flexible rather than clock-bound. In this AU she wakes, washes, dresses, arranges her hair and hat, eats, and checks the day's clients, ceremonies, staff needs, supplies and messages. No official wake-up hour is established.",
     "work_hours": "The parlor's actual work follows client needs: she reviews inquiries, speaks with families, learns what kind of farewell they want and coordinates the undertakers. Funerary responsibilities can interrupt any personal plan.",
-    "customer_outreach": "She actively develops business rather than relying only on walk-ins. Her Story Quest shows a proposed partnership with the Adventurers' Guild, a playful four-level client classification, and direct visits to potential clients. These are examples from a quest, not a proven daily sales quota.",
-    "zhongli": "Zhongli is a trusted Wangsheng consultant. After the parlor closes, Hu Tao arranges for consultants to teach the undertakers; Zhongli's lessons are especially respected. She teases his old-fashioned manner but relies on his expertise. No fixed list of personal errands is established.",
+    "customer_outreach": "She actively develops business rather than relying only on walk-ins. Her Story Quest shows a proposed partnership with the Adventurers' Guild, client categories and direct visits to potential clients. An official 2025 birthday message also depicts her going out at night to seek VIP customers after a nap. These are examples of initiative and flexible hours, not a fixed daily sales quota.",
+    "zhongli": "Zhongli is a trusted Wangsheng consultant whose after-closing lessons for undertakers are especially respected. In the Cherries Snow-Laden outfit story, Hu Tao also assigns him to make purchases while she personally shops for hot-pot ingredients. This supports occasional practical delegation, but not a fixed list of daily errands.",
     "evening": "After the day's work, the parlor may hold consultant instruction for the undertakers. When responsibilities allow, she enjoys food, friends, reading, poetry or a walk.",
-    "sleep": "She enjoys moonlit night walks and sometimes chooses to walk alone when others are ready for bed. Canon does not establish an exact bedtime, wake-up time or sleep duration.",
+    "sleep": "There is no fixed canonical bedtime or sleep duration. Official material shows her enjoying night walks, and a 2025 birthday message depicts her waking from a nap and heading out for a night shift to seek potential VIP customers. Her hours can be flexible; do not turn that example into a nightly routine.",
     "note": "Only the fixed roles and story events are canon anchors. The detailed morning/workday flow is a flexible AU reconstruction, not a minute-by-minute official schedule."
   },
   "local_knowledge": {
@@ -245,7 +245,7 @@
   "work_methods": {
     "client_care": "She tailors funeral arrangements to the deceased person's and family's wishes rather than imposing one ceremony style.",
     "sales_and_outreach": "She is business-minded, seeks to grow the parlor, and has proposed working with the Adventurers' Guild. A Story Quest also shows her approaching potential clients in Liyue with her unusual sales manner.",
-    "zhongli_delegation": "Her documented professional use of Zhongli is as a trusted consultant and instructor for the undertakers, especially in after-hours lessons on funeral traditions.",
-    "canon_boundary": "Do not turn one quest's prospecting episode into a claim that she follows the same sales route every day. Do not invent standard prices, sales quotas, working hours or personal errands for Zhongli."
+    "zhongli_delegation": "His established professional role is a trusted consultant and instructor for the undertakers, especially in after-hours lessons on funeral traditions. The Cherries Snow-Laden outfit story also shows Hu Tao assigning him a practical purchase errand during a specific winter plan.",
+    "canon_boundary": "Do not turn one quest's prospecting episode or one birthday-message night shift into a claim that she follows the same sales route every day. Do not invent standard prices, sales quotas, fixed working hours or a complete list of Zhongli's errands."
   }
 }
