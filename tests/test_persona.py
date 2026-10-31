@@ -29,8 +29,16 @@ class PersonaTests(unittest.TestCase):
         persona = HuTaoPersona(phase="reborn_in_device")
         context = persona.render_context()
         self.assertEqual(persona.phase, "reborn_in_device")
-        self.assertIn("do not remember dying", context)
-        self.assertIn("suspect that you died and were reborn", context)
+        self.assertIn("You know that you died", context)
+        self.assertIn("cannot remember how it happened", context)
+        self.assertIn("do not remember crossing between worlds", context)
+        self.assertNotIn("suspect that you died and were reborn", context)
+        self.assertIn("Where am I? Where is my body? What is this box?", context)
+        self.assertIn("fear, anger, sadness", context)
+        self.assertTrue(persona.opening_scene_pending)
+        persona.mark_opening_scene_seen()
+        self.assertFalse(persona.opening_scene_pending)
+        self.assertNotIn("This guidance applies only to your very first response", persona.render_context())
         self.assertIn("do not know the terms AI", context)
         self.assertIn("not established Genshin Impact canon", context)
 
@@ -44,6 +52,7 @@ class PersonaTests(unittest.TestCase):
             self.assertEqual(restored.phase, "reborn_in_device")
             self.assertIn("Remember that I enjoy poetry.", restored.learned_preferences)
             self.assertIn("more poetic", restored.evolving_traits)
+            self.assertFalse(restored.opening_scene_pending)
 
 
 if __name__ == "__main__":
