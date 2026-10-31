@@ -4,9 +4,8 @@ from pathlib import Path
 
 from joseph.config import ModelConfig
 from joseph.knowledge import EntityRecord, FactRecord, KnowledgeStore, SourceRecord
-from joseph.knowledge.ingest import ingest_bundle
 from joseph.memory import MemoryStore
-from joseph.tokenizer import ByteBPETokenizer
+from joseph.tokenizer import ByteBPETokenizer, SPECIAL_TOKENS
 
 
 class TokenizerTests(unittest.TestCase):
@@ -19,14 +18,23 @@ class TokenizerTests(unittest.TestCase):
         text = "A small test."
         tokenizer = ByteBPETokenizer.train([text * 4], vocab_size=280)
         encoded = tokenizer.encode(text, add_bos=True, add_eos=True)
-        self.assertEqual(encoded[0], 1)
-        self.assertEqual(encoded[-1], 2)
+        self.assertEqual(encoded[0], tokenizer.special_token_id("<bos>"))
+        self.assertEqual(encoded[-1], tokenizer.special_token_id("<eos>"))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "tokenizer.json"
             tokenizer.save(path)
             restored = ByteBPETokenizer.load(path)
             self.assertEqual(restored.decode(encoded), text)
             self.assertEqual(restored.vocab_size, tokenizer.vocab_size)
+
+    def test_hutao_speaker_marker_is_an_atomic_reserved_token(self):
+        text = "<|user|>Hello<|hutao|>Well, hello there!"
+        tokenizer = ByteBPETokenizer.train([text * 3], vocab_size=300)
+        encoded = tokenizer.encode(text)
+        self.assertIn(tokenizer.special_token_id("<|user|>"), encoded)
+        self.assertIn(tokenizer.special_token_id("<|hutao|>"), encoded)
+        self.assertEqual(tokenizer.decode(encoded, skip_special_tokens=False), text)
+        self.assertEqual(len(SPECIAL_TOKENS), 10)
 
 
 class KnowledgeTests(unittest.TestCase):
@@ -57,6 +65,7 @@ class KnowledgeTests(unittest.TestCase):
                 self.assertEqual(found[0]["sources"][0]["source_id"], "official")
 
     def test_seed_bundle_imports_all_nine_jojo_parts(self):
+        from joseph.knowledge.ingest import ingest_bundle
         root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "jojo.sqlite"

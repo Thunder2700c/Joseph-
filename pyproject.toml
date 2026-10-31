@@ -11,8 +11,9 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-train = ["torch>=2.3"]
-test = ["torch>=2.3"]
+train = ["torch>=2.3", "tokenizers>=0.21,<1"]
+test = ["torch>=2.3", "tokenizers>=0.21,<1"]
+data = ["datasets>=3.0,<5"]
 
 [tool.setuptools.packages.find]
 include = ["joseph*", "training*"]

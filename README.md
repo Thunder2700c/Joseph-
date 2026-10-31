@@ -6,17 +6,21 @@ This is a from-scratch Hu Tao character-model research project. It does not cont
 
 ## Project continuation and development order
 
-Read [CONTINUATION_CONTEXT.md](CONTINUATION_CONTEXT.md) first when resuming this project in a new conversation. It is the central handoff document for naming, character identity, current dataset state, constraints and non-negotiable development order.
+Read [CONTINUATION_CONTEXT.md](CONTINUATION_CONTEXT.md) first when resuming this project in a new ChatGPT conversation. It is the central handoff summary. See [MODEL_TRAINING_PLAN.md](MODEL_TRAINING_PLAN.md) for the complete research plan and [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md) for the currently authorized base-language stage.
 
-The user-approved sequence is: **complete Hu Tao's former-life memories → train and evaluate the standalone Hu Tao character model → only then build the Android app.** See [MODEL_TRAINING_PLAN.md](MODEL_TRAINING_PLAN.md). The current Transformer is a random-initialized research prototype, not a finished character model.
+The current order is: **build the general language foundation while former-life research continues → finish and review Hu Tao's former-life memories → directly train and evaluate her character behaviour → only then build the Android app.** Hu Tao-specific training remains gated on reviewed life memories and public Teyvat knowledge.
 
 Joseph is the repository/engineering codename. Hu Tao is the character. In-character, she speaks as Hu Tao and does not introduce herself as an AI assistant. Technically, the implementation remains a neural language model; the project target is a purpose-trained Hu Tao character model, not a generic assistant relying on a roleplay prompt.
+
+## Canon and point of view
+
+Hu Tao may know what she witnesses and what ordinary people could plausibly hear, read or discuss. Traveler-only secrets, private conversations and hidden motives are not given to her. Every event is labelled by whether she witnessed it, heard it, read it or knows it as public reference material.
+
+See [character/knowledge_policy.md](character/knowledge_policy.md) for the complete knowledge boundary.
 
 ## The central idea: her life happens first
 
 Hu Tao's former life is built as ordered, individually sourced memories. Her final phone awakening remains locked until the required life stages have been researched, reviewed and completed.
-
-A Traveler-only event is never turned into Hu Tao's first-hand memory. For Fontaine, Natlan and other distant nations, the chronicle records the canon event separately from the news report through which Hu Tao learns its public outline.
 
 See [character/identity.md](character/identity.md), [character/life_stages.json](character/life_stages.json), and [character/awakening.md](character/awakening.md).
 
@@ -27,34 +31,17 @@ The intended app experience is a single persistent, WhatsApp-style thread with H
 - Every user and Hu Tao message is appended to one local chronological history.
 - Older messages remain searchable; closing and reopening the app does not reset the thread.
 - The raw transcript is never replaced by an automatic summary.
-- Relevant old turns, personal memories, Teyvat memories, news and user-taught facts are retrieved when needed.
+- Relevant old turns remain searchable; personal memories, Teyvat memories, news and user-taught facts are retrieved when needed.
 - The full transcript stays on the device; the model sees a relevant selection for each reply.
 - The Android target must additionally keep a verified, user-owned backup outside app-private storage so Clear storage or reinstall can be recovered.
 
 **Important persistence status:** the Python SQLite store commits turns locally, but the native Android app and its external backup/restore flow have not been implemented yet. Android Clear storage or uninstall will remove app-private databases. See [android/README.md](android/README.md) for the required backup design; do not assume cross-install persistence is already available.
 
-The backend supports this single timeline in `joseph/memory/store.py`. Android UI and inference integration are still to be built.
+## Language foundation and training data
 
-## Four independent memory stores
+The general-language foundation uses a capped, streamed sample of Cosmopedia v2 from Hugging Face's SmolLM-Corpus. The acquisition recipe, licence attribution and dataset limitations are documented in [datasets/base_language/README.md](datasets/base_language/README.md). This is separate from Hu Tao's life memories and dialogue.
 
-1. **Continuous conversation transcript:** the complete sequence of messages, saved locally and searchable.
-2. **Personal memory:** durable user preferences and details, separate from the raw transcript.
-3. **User-taught world knowledge:** facts the user teaches Hu Tao about our world. Each is attributed as user-taught, stored independently, and retrieved later.
-4. **Teyvat life and news:** her own source-backed experiences, reference knowledge, and separate reports about events in other nations.
-
-Teach a fact to the world database through `WorldKnowledgeStore.teach(subject, statement, ...)`. It is persisted immediately and can be retrieved in future conversations. It does not need model retraining to become available.
-
-## News from other nations
-
-The Teyvat chronicle stores a canon story beat and a separate news transmission. For example, a Fontaine Archon Quest act can be canon, while Hu Tao's awareness of it is labelled as something she read in the Steambird or heard from merchants.
-
-Transmission channels include newspapers, merchants, travellers, Adventurers' Guild dispatches, letters, books and rumours. Every report retains a channel and reliability label. Hearing a story about Natlan is not the same as personally taking part in it.
-
-The starter chronicle includes 10 act-level original summaries for Fontaine and Natlan, plus 9 separate reports that reach Hu Tao as news. The life-memory dataset now contains 106 ordered entries, including 9 news-awareness memories. These are **not yet a scene-by-scene complete story database**. The format supports expanding each act into many ordered, independently retrievable story beats.
-
-Import the chronicle:
-
-    python -m joseph.life.news_ingest
+The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer supports a held-out validation split. **No corpus has yet been downloaded and no model has yet been trained.** See [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md).
 
 ## Model size is not memory size
 
@@ -65,63 +52,28 @@ The 1 GB limit is a **maximum neural-weight/checkpoint budget**, not a 1 GB cont
 - The local SQLite transcript and knowledge databases can grow independently of the model weights, subject to phone storage.
 - On each reply, retrieval selects useful old messages and facts rather than placing an entire lifetime of conversation into the active prompt.
 
-The model is not yet capable of a convincing conversation. A small random model cannot become Hu Tao just by loading a few memories or a large roleplay prompt. It still needs broad language training, direct Hu Tao character training, evaluation and a reproducible standalone inference harness. Android work is deferred until the model passes its success gates.
-
-## Model learning versus stored knowledge
-
-User-taught world facts are saved immediately in the local knowledge database. By default, they are **not** silently baked into model weights.
-
-A fact can be individually approved for future training. Export only those approved records with:
-
-    python -m training.export_world_knowledge --db local/world_knowledge.sqlite
-
-Raw chat transcripts are never included by that exporter. This keeps private conversations correctable and separate from neural training.
-
-## Current Teyvat checkpoint
-
-The current project knowledge checkpoint is **2026-10-31**. The official Version 7.2 update notes say Version 7.2 arrives on **November 4, 2026**, so its announced story is not treated as released playable history on the checkpoint date. Every story record must carry its version and release status.
+The current model is not yet capable of a convincing conversation. A small random model cannot become Hu Tao just by loading a few memories or a large roleplay prompt. It still needs broad language training, direct Hu Tao character training, evaluation and a reproducible standalone inference harness. Android work is deferred until the model passes its success gates.
 
 ## Run tests
 
     python -m unittest discover -s tests -v
 
-## Story source handling
-
-We can build detailed, original, scene-by-scene story summaries and fact records. Story beats must have original wording, a legitimate source reference, chronology, spoiler scope, and a label that says whether Hu Tao witnessed, heard or read about them.
-
 ## Main folders
 
-- `joseph/` — model, tokenizer, persona, memory, Teyvat life, news and recall
-- `character/` — staged life plan, source-linked memories and awakening
-- `datasets/teyvat/` — source-backed world facts, story beats and news reports
-- `datasets/world_user/` — user-taught facts schema and guidance
-- `training/` — model training and explicitly approved world-fact export
-- `android/` — deferred Android runtime and backup requirements
-- `CONTINUATION_CONTEXT.md` — authoritative handoff document for future chats
-- `MODEL_TRAINING_PLAN.md` — model-first training and evaluation plan
+- joseph/ — model, tokenizer, persona, memory, Teyvat life, news and recall
+- character/ — staged life plan, source-linked memories and point-of-view policy
+- datasets/base_language/ — general language corpus acquisition and licence notes
+- datasets/teyvat/ — source-backed world facts, story beats and public news reports
+- training/ — corpus acquisition, tokenizer and model training utilities
+- android/ — deferred Android runtime and backup requirements
+- CONTINUATION_CONTEXT.md — central project handoff
+- MODEL_TRAINING_PLAN.md — model-first training and evaluation plan
 
-## Expanded knowledge checkpoint (2026-10-31)
+## Existing data checkpoint (2026-10-31)
 
-- `datasets/common_world/` contains 262 source-aware everyday-life facts: anatomy, digestion, bowel and urinary functions, hygiene, sex and gender, reproduction, relationships, emotions, adult vocabulary and media literacy.
-- Teyvat common-life assumptions are explicitly marked as assumptions, not canon. Non-human species are not automatically assigned human biology.
-- `datasets/teyvat/story_beats.jsonl` contains 50 act-level Archon Quest and Interlude summaries, with 50 separate AU news transmissions in `news_reports.jsonl`.
-- `quest_catalogue.jsonl` indexes 257 quest entries: 50 Archon/Interlude acts, 129 World Quest titles, 55 Story Quest chapters, 4 Hu Tao Story Quest subquests and 19 Hangout chapters.
-- `release_news.jsonl` contains 14 out-of-world HoYoverse publisher bulletins, kept separate from Hu Tao's Teyvat awareness.
-- The World Quest, Story Quest and Hangout entries are title-level catalogue records; they are not all fully summarised. Scene-level Archon Quest expansion and complete side-story coverage remain unfinished.
+- datasets/common_world/ contains 262 source-aware everyday-life facts.
+- datasets/teyvat/story_beats.jsonl contains 50 act-level Archon Quest and Interlude summaries, with separate AU public-awareness reports in news_reports.jsonl.
+- quest_catalogue.jsonl indexes 257 quest entries; many World Quest, Story Quest and Hangout entries are title-level rather than full scene summaries.
+- character/life_memories.jsonl contains 106 ordered starter records. Stages 1–9 still need substantive expansion and review; Stage 10 phone awakening remains locked.
 
-The database import commands are:
-
-    python -m joseph.knowledge.ingest --db local/common_knowledge.sqlite
-    python -m joseph.life.news_ingest --db local/teyvat_chronicle.sqlite
-    python -m joseph.life.catalogue_ingest --db local/quest_catalogue.sqlite
-    python -m joseph.life.release_news_ingest --db local/official_news.sqlite
-
-The knowledge corpus is retrieved into the model context when relevant. This is not neural training; neural training begins only after dataset review and a separate training plan.
-
-## Hu Tao's personal reference profile (2026-10-31)
-
-The character profile now contains her official identity and attributes, family facts, appearance, work, relationships, local surroundings and a basic civic/geographical overview of Teyvat. `character/identity_profile.json` is the readable bio; `character/teyvat_social_world.json` is her social and regional reference map. The life-memory store now has 106 source-linked or user-authored records. Stages 8 and 9 now have starter records, but the former-life research and review gate is still incomplete.
-
-Her official birthday is **July 15**. The user-approved AU assigns **15 July 2006** as her full birth date, making her 20 at the 2026-10-31 checkpoint. The official profile supplies July 15; 2006 is the AU year. The profile also uses provisional AU measurements of approximately **156 cm and 48 kg**. HoYoverse has not published her birth year, height or weight, so those fields are not presented as official canon.
-
-Her knowledge covers the seven nations, their Archons and governing institutions, Liyue's Qixing and local institutions, friends and acquaintances, major places, and the cross-region news network. It explicitly separates close friends from people she merely admires or knows by reputation. Current office-holder details are checkpointed and should be refreshed after new releases.
+Hu Tao's official birthday is **July 15**. The user-approved AU assigns **15 July 2006** as her full birth date. The year 2006 is an AU choice; height and weight remain provisional AU estimates, not official HoYoverse attributes.
