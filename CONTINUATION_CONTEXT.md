@@ -4,7 +4,7 @@
 
 **Last handoff review:** 2026-10-31
 **Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
-**Latest language-foundation commit:** `9f9005a1f92b955e69d85dc97328042aa97bd814` (CI run #69 passed, 47 tests)  
+**Latest language-foundation pipeline commit:** `2b5da9decfac5995044e75a516148d9cdaeec1ad` (hosted corpus/tokenizer workflow added; tokenizer artifact not yet verified)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
