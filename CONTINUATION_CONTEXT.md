@@ -100,22 +100,22 @@ Core files:
 
 ## 6. Current former-life dataset status (2026-10-31)
 
-The last audited dataset contains **95 ordered memory records** and **33 source records**. All 95 memory IDs and sequence numbers are unique, and the audit found no broken source references.
+The last audited dataset contains **106 ordered memory records** and **39 source records**. All 95 memory IDs and sequence numbers are unique, and the audit found no broken source references.
 
 | Stage | Existing records | Status / next work |
 |---|---:|---|
-| 01 Origins, childhood and family | 5 | All minimum tags are represented, but the history is still shallow. Continue researched chronology of Old Hu, Hu Tao's father, family life and childhood. |
-| 02 Wangsheng learning | 1 | Major gaps: living at the parlor, parlor history and early work. |
+| 01 Origins, childhood and family | 6 | The family-photo memory was added, but the chronology is still shallow. Continue researching Old Hu, her father, family life and childhood. |
+| 02 Wangsheng learning | 5 | Minimum tags are now represented, including AU childhood environment and supervised duties. The AU entries need review and the detailed chronology remains incomplete. |
 | 03 Becoming Director | 14 | Starter coverage exists; manual review and richer chronology remain. |
 | 04 Relationships and daily life | 32 | Starter coverage exists; manual review and depth remain. |
 | 05 Personal quests and appearances | 9 | Starter coverage exists; verify completeness and review. |
 | 06 Liyue and Teyvat knowledge | 23 | Starter public-awareness map; expand and verify rather than assuming comprehensive knowledge. |
-| 07 World history and Archon events | 11 | Starter coverage; major source/depth expansion remains. |
-| 08 Later appearances and version updates | 0 | Not started. |
-| 09 Final life and transition | 0 | User-AU ending not written yet; preserve the death-memory gap. |
+| 07 World history and Archon events | 12 | A Snezhnaya Chapter VII public-report-only record was added; major source/depth expansion remains. |
+| 08 Later appearances and version updates | 4 | Includes official 2025/2026 birthday scenes, reported 7.1 public characters and reference-only release metadata; more later story coverage remains. |
+| 09 Final life and transition | 1 | The user-approved hidden final-life boundary now exists; it deliberately contains no cause, date or place. The final chapter still needs substantive review. |
 | 10 Phone awakening | 0 | Locked until the former-life stages are finished and the model/app sequence is ready. |
 
-The first seven stages have a total of 95 records. Stage 1 is not complete simply because its six coverage tags are present.
+The first nine stages now have a total of 106 starter records. Stage 1 is not complete simply because its six coverage tags are present.
 
 Additional starter corpus status recorded in the repository:
 - `datasets/common_world/`: 262 source-aware everyday-life facts.
@@ -197,8 +197,8 @@ When authorized by the roadmap, the Android app should provide offline inference
 
 1. Read this file first.
 2. Check the latest commit on `main` and verify the current files, because this handoff summary is a snapshot.
-3. Continue the unfinished former-life work, starting with Stage 1 depth and then Stage 2 Wangsheng upbringing.
-4. Do not begin serious neural training until stages 1–9 have sufficient researched content and explicit review.
+3. Continue the unfinished former-life work. Stage 1 remains shallow despite all minimum tags; Stage 2's new AU childhood details need review; stages 3–7 need depth audits; stages 8–9 have only starter coverage.
+4. Do not begin serious neural training until stages 1–9 have sufficient researched content and explicit review. The 106-record expansion does not complete this gate.
 5. Once life data is complete, work through `MODEL_TRAINING_PLAN.md`, not Android UI.
 6. Begin Android app development only after the standalone Hu Tao model demonstrably passes the success gates above.
 
