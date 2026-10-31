@@ -13,7 +13,18 @@ Android acceptance goals:
 - measure peak RAM, cold-start time, tokens/second, battery use, and device temperature;
 - gracefully fall back to retrieval-based answers when the language model is uncertain.
 
-The first Android milestone should be inference-only. Large-scale training on the phone is not part of the initial plan.
+## Project sequence: Android work is deferred
+
+Do not begin the Android application while the former-life memory stages are unfinished or while the standalone Hu Tao model is still being trained/evaluated.
+
+The approved sequence is:
+
+1. Complete and manually review the former-life stages 1–9.
+2. Train the purpose-built Hu Tao character language model and make it pass the standalone evaluation gates in [MODEL_TRAINING_PLAN.md](../MODEL_TRAINING_PLAN.md).
+3. Freeze and verify the trained checkpoint and standalone inference harness.
+4. Only then start the Android application, integrating that already-working model.
+
+The first Android milestone, once authorized by the sequence above, is an inference-only native shell. Large-scale model training is not an Android-app task and must not be used as a reason to start app development early.
 
 ## Durable memory across clear-data and reinstall
 
