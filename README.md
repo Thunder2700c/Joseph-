@@ -30,7 +30,7 @@ A quest involving the Traveler must not automatically be represented as Hu Tao's
 
 ## Current life-memory starter pack
 
-The initial dataset contains 12 original, source-linked summaries covering Hu Tao's director role, professional outlook, poetry, selected relationships, two Story Quest arcs and a small world-lore fact. It is a starter pack only. Her childhood, full family story, the complete parlor history and broad Teyvat knowledge are still incomplete. Therefore, **the awakening is intentionally locked**.
+The initial dataset contains 21 original, source-linked memory entries covering Hu Tao's director role, professional outlook, poetry, selected relationships, two Story Quest arcs and a small world-lore fact. It is a starter pack only. Her childhood, full family story, the complete parlor history and broad Teyvat knowledge are still incomplete. Therefore, **the awakening is intentionally locked**.
 
 Import the ordered memory records into a local SQLite database:
 
