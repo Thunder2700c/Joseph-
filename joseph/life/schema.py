@@ -76,8 +76,11 @@ class LifeMemory:
         if self.canon_category == "user_au":
             if self.review_state == "verified":
                 raise ValueError("user AU entries must not be labelled canon-verified")
-        elif not self.source_ids:
-            raise ValueError("canon and supplementary memories require source_ids")
+        else:
+            if not self.source_ids:
+                raise ValueError("canon and supplementary memories require source_ids")
+            if self.review_state == "user_authored":
+                raise ValueError("canon and supplementary memories cannot be user-authored")
         if self.perspective == "hidden_transition" and self.recalled_by_character:
             raise ValueError("hidden transition memories cannot be recalled by Hu Tao")
         if any(not tag.strip() for tag in self.coverage_tags):

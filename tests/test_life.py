@@ -24,6 +24,16 @@ class LifeMemoryTests(unittest.TestCase):
                 recalled_by_character=True,
             )
 
+    def test_rejects_user_authored_state_for_canon_memory(self):
+        with self.assertRaisesRegex(ValueError, "cannot be user-authored"):
+            LifeMemory(
+                memory_id="mislabelled-canon", sequence=3, stage_id="stage-a",
+                memory_kind="autobiographical", perspective="first_person",
+                memory_text="A sourced canon memory with the wrong review state.",
+                source_ids=("official",), canon_category="game_canon",
+                review_state="user_authored",
+            )
+
     def test_ordered_memory_round_trip_and_source_link(self):
         with tempfile.TemporaryDirectory() as directory:
             db = Path(directory) / "life.sqlite"
@@ -62,11 +72,11 @@ class LifeMemoryTests(unittest.TestCase):
             )
             with LifeMemoryStore(db) as store:
                 builder = LifeBuilder(store, root / "character/life_stages.json")
-                self.assertEqual(len(store.memories()), 80)
+                self.assertEqual(len(store.memories()), 84)
                 self.assertFalse(builder.ready_to_awaken())
                 progress = {row["stage_id"]: row for row in builder.progress()}
-                self.assertEqual(progress["01_origins_and_family"]["memory_count"], 1)
-                self.assertEqual(progress["01_origins_and_family"]["missing_coverage"], ["border_journey", "childhood_chronology", "early_vision"])
+                self.assertEqual(progress["01_origins_and_family"]["memory_count"], 5)
+                self.assertEqual(progress["01_origins_and_family"]["missing_coverage"], [])
                 self.assertEqual(progress["02_wangsheng_learning"]["memory_count"], 0)
                 self.assertEqual(progress["03_becoming_director"]["memory_count"], 11)
                 self.assertEqual(progress["03_becoming_director"]["missing_coverage"], [])
@@ -129,6 +139,54 @@ class LifeMemoryTests(unittest.TestCase):
                     review_state="verified", coverage_tags=("grandfather",),
                 ))
                 builder.complete_stage("origins", "All required topics sourced and reviewed")
+
+    def test_ready_to_awaken_rechecks_coverage_after_plan_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan = root / "stages.json"
+            initial_plan = {
+                "stages": [
+                    {"stage_id": "first", "order": 1, "title": "Origins",
+                     "depends_on": [], "required_before_awakening": True,
+                     "required_coverage_tags": ["family"]},
+                    {"stage_id": "wake", "order": 2, "title": "Awakening",
+                     "depends_on": ["first"], "required_before_awakening": False,
+                     "is_awakening_stage": True}
+                ]
+            }
+            plan.write_text(json.dumps(initial_plan), encoding="utf-8")
+            with LifeMemoryStore(root / "life.sqlite") as store:
+                builder = LifeBuilder(store, plan)
+                store.add_source(LifeSource(
+                    source_id="official", title="Official source",
+                    url="https://example.invalid/source",
+                ))
+                store.add_memory(LifeMemory(
+                    memory_id="family-memory", sequence=1001, stage_id="first",
+                    memory_kind="autobiographical", perspective="first_person",
+                    memory_text="A sourced family memory.", source_ids=("official",),
+                    review_state="verified", coverage_tags=("family",),
+                ))
+                builder.complete_stage("first", "Initial requirements reviewed")
+                self.assertTrue(builder.ready_to_awaken())
+
+                changed_plan = {
+                    "stages": [
+                        {"stage_id": "first", "order": 1, "title": "Origins",
+                         "depends_on": [], "required_before_awakening": True,
+                         "required_coverage_tags": ["family", "childhood"]},
+                        {"stage_id": "wake", "order": 2, "title": "Awakening",
+                         "depends_on": ["first"], "required_before_awakening": False,
+                         "is_awakening_stage": True}
+                    ]
+                }
+                plan.write_text(json.dumps(changed_plan), encoding="utf-8")
+                refreshed_builder = LifeBuilder(store, plan)
+                self.assertFalse(refreshed_builder.ready_to_awaken())
+                progress = {row["stage_id"]: row for row in refreshed_builder.progress()}
+                self.assertEqual(progress["first"]["missing_coverage"], ["childhood"])
+                with self.assertRaises(RuntimeError):
+                    refreshed_builder.perform_awakening(HuTaoPersona())
 
     def test_awakening_waits_for_every_prerequisite_and_changes_persona_phase(self):
         with tempfile.TemporaryDirectory() as directory:

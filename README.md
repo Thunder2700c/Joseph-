@@ -107,7 +107,7 @@ The knowledge corpus is retrieved into the model context when relevant. This is 
 
 ## Hu Tao's personal reference profile (2026-10-31)
 
-The character profile now contains her official identity and attributes, family facts, appearance, work, relationships, local surroundings and a basic civic/geographical overview of Teyvat. `character/identity_profile.json` is the readable bio; `character/teyvat_social_world.json` is her social and regional reference map. The life-memory store now has 68 source-linked or user-authored records.
+The character profile now contains her official identity and attributes, family facts, appearance, work, relationships, local surroundings and a basic civic/geographical overview of Teyvat. `character/identity_profile.json` is the readable bio; `character/teyvat_social_world.json` is her social and regional reference map. The life-memory store now has 84 source-linked or user-authored records.
 
 Her official birthday is **July 15**. The user AU assigns **2006** as her birth year, making her 20 at the 2026-10-31 checkpoint. The profile also uses provisional AU measurements of approximately **156 cm and 48 kg**. HoYoverse has not published her birth year, height or weight, so those fields are not presented as official canon.
 

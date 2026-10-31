@@ -53,8 +53,15 @@ class LifeBuilder:
         memories = self.store.memories(stage_id=stage_id)
         if not memories:
             raise ValueError("a stage cannot be completed without memory records")
-        if any(memory.review_state == "needs_review" for memory in memories):
-            raise ValueError("all memory records in this stage must be reviewed")
+        unreviewed = [
+            memory for memory in memories
+            if not self._has_approved_review_state(memory)
+        ]
+        if unreviewed:
+            ids = ", ".join(memory.memory_id for memory in unreviewed)
+            raise ValueError(
+                "all memory records in this stage need the correct review state: " + ids
+            )
 
         required_tags = set(stage.get("required_coverage_tags", []))
         covered_tags = {
@@ -104,6 +111,43 @@ class LifeBuilder:
             })
         return result
 
+    @staticmethod
+    def _has_approved_review_state(memory) -> bool:
+        """Require canon review for canon facts and explicit authorship for AU facts."""
+        if memory.canon_category == "user_au":
+            return memory.review_state == "user_authored"
+        return memory.review_state == "verified"
+
+    def _stage_is_currently_complete(self, stage: dict) -> bool:
+        row = self.store.connection.execute(
+            "SELECT status FROM life_stages WHERE stage_id = ?",
+            (stage["stage_id"],),
+        ).fetchone()
+        if row is None or row["status"] != "completed":
+            return False
+
+        memories = self.store.memories(stage_id=stage["stage_id"])
+        if not memories or any(
+            not self._has_approved_review_state(memory) for memory in memories
+        ):
+            return False
+
+        required_tags = set(stage.get("required_coverage_tags", []))
+        covered_tags = {
+            tag for memory in memories for tag in memory.coverage_tags
+        }
+        if not required_tags.issubset(covered_tags):
+            return False
+
+        for dependency in stage.get("depends_on", []):
+            dependency_row = self.store.connection.execute(
+                "SELECT status FROM life_stages WHERE stage_id = ?",
+                (dependency,),
+            ).fetchone()
+            if dependency_row is None or dependency_row["status"] != "completed":
+                return False
+        return True
+
     def ready_to_awaken(self) -> bool:
         required = [
             stage for stage in self.stages
@@ -112,13 +156,7 @@ class LifeBuilder:
         ]
         if not required:
             return False
-        return all(
-            self.store.connection.execute(
-                "SELECT status FROM life_stages WHERE stage_id = ?",
-                (stage["stage_id"],),
-            ).fetchone()["status"] == "completed"
-            for stage in required
-        )
+        return all(self._stage_is_currently_complete(stage) for stage in required)
 
     def perform_awakening(self, persona: "HuTaoPersona | None" = None) -> str:
         if not self.ready_to_awaken():
