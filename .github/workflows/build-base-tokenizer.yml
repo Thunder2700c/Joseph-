@@ -1,0 +1,136 @@
+name: Build base tokenizer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-base-tokenizer.yml"
+      - "training/acquire_base_corpus.py"
+      - "training/train_tokenizer.py"
+      - "joseph/tokenizer.py"
+      - "datasets/base_language/README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: base-tokenizer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-tokenizer:
+    name: Acquire corpus and fit tokenizer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install data and tokenizer dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "datasets>=3.0,<5" "tokenizers>=0.21,<1"
+
+      - name: Acquire capped Cosmopedia v2 corpus
+        run: |
+          python -m training.acquire_base_corpus \
+            --output-dir artifacts/base_language/cosmopedia-v2 \
+            --max-samples 100000 \
+            --max-characters 200000000 \
+            --max-document-characters 100000 \
+            --validation-percent 5 \
+            --seed 42 \
+            --shuffle-buffer 10000
+
+      - name: Fit ByteLevel BPE on training split only
+        run: |
+          python -m training.train_tokenizer \
+            --input artifacts/base_language/cosmopedia-v2/train.txt \
+            --output artifacts/base_language/tokenizer.json \
+            --vocab-size 8192 \
+            --min-frequency 2
+
+      - name: Verify tokenizer, hashes and Unicode round trips
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from joseph.tokenizer import ByteBPETokenizer, SPECIAL_TOKENS
+
+          root = Path("artifacts/base_language")
+          corpus = root / "cosmopedia-v2"
+          tokenizer_path = root / "tokenizer.json"
+          tokenizer_manifest_path = root / "tokenizer.manifest.json"
+          corpus_manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+          tokenizer_manifest = json.loads(tokenizer_manifest_path.read_text(encoding="utf-8"))
+
+          def sha256(path):
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          tokenizer = ByteBPETokenizer.load(tokenizer_path)
+          assert tokenizer.vocab_size == 8192, tokenizer.vocab_size
+          assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["tokenizer_sha256"] == sha256(tokenizer_path)
+          assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
+          assert tokenizer_manifest["special_tokens"] == list(SPECIAL_TOKENS)
+          assert corpus_manifest["dataset_revision"] == "3ba9d60"
+          assert corpus_manifest["dataset_license"] == "ODC-By-1.0"
+          assert corpus_manifest["selected_field"] == "text"
+          assert corpus_manifest["excluded_fields"] == ["prompt", "seed_data"]
+          assert corpus_manifest["samples"]["train"] > 0
+          assert corpus_manifest["samples"]["validation"] > 0
+
+          samples = [
+              "Hu Tao — Wangsheng Funeral Parlor, Liyue Harbor.",
+              "Teyvat: Mondstadt, Liyue, Inazuma, Sumeru, Fontaine, Natlan, Nod-Krai, Snezhnaya.",
+              "Unicode check: 你好，世界！ Привет мир! ਪੰਜਾਬੀ 😀 🎭",
+              "Punctuation: ...?! — “quotes”; apostrophes ' and symbols # @ % &",
+          ]
+          for sample in samples:
+              restored = tokenizer.decode(tokenizer.encode(sample))
+              assert restored == sample, (sample, restored)
+
+          print(json.dumps({
+              "vocab_size": tokenizer.vocab_size,
+              "tokenizer_bytes": tokenizer_path.stat().st_size,
+              "tokenizer_sha256": tokenizer_manifest["tokenizer_sha256"],
+              "train_samples": corpus_manifest["samples"]["train"],
+              "validation_samples": corpus_manifest["samples"]["validation"],
+              "total_characters": corpus_manifest["samples"]["total_characters"],
+              "approximate_tokens": corpus_manifest["samples"]["approximate_tokens_at_4_chars_per_token"],
+              "dataset_revision": corpus_manifest["dataset_revision"],
+              "license": corpus_manifest["dataset_license"],
+              "unicode_round_trips": len(samples),
+              "validation_text_used_for_tokenizer": False
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Include source and licence notes
+        run: cp datasets/base_language/README.md artifacts/base_language/README.md
+
+      - name: Upload tokenizer and reproducible corpus artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-base-tokenizer-cosmopedia-v2
+          path: |
+            artifacts/base_language/README.md
+            artifacts/base_language/cosmopedia-v2/train.txt
+            artifacts/base_language/cosmopedia-v2/validation.txt
+            artifacts/base_language/cosmopedia-v2/manifest.json
+            artifacts/base_language/tokenizer.json
+            artifacts/base_language/tokenizer.manifest.json
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
