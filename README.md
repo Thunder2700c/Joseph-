@@ -21,6 +21,9 @@ The intended app experience is a single persistent, WhatsApp-style thread with H
 - The raw transcript is never replaced by an automatic summary.
 - Relevant old turns, personal memories, Teyvat memories, news and user-taught facts are retrieved when needed.
 - The full transcript stays on the device; the model sees a relevant selection for each reply.
+- The Android target must additionally keep a verified, user-owned backup outside app-private storage so Clear storage or reinstall can be recovered.
+
+**Important persistence status:** the Python SQLite store commits turns locally, but the native Android app and its external backup/restore flow have not been implemented yet. Android Clear storage or uninstall will remove app-private databases. See [android/README.md](android/README.md) for the required backup design; do not assume cross-install persistence is already available.
 
 The backend supports this single timeline in `joseph/memory/store.py`. Android UI and inference integration are still to be built.
 
