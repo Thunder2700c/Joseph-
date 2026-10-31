@@ -1,0 +1,134 @@
+"""Small decoder-only Transformer used as Joseph's reference model."""
+
+from __future__ import annotations
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+except ImportError as exc:  # pragma: no cover
+    raise ImportError(
+        "Joseph's neural model requires PyTorch. Install it with: "
+        "python -m pip install -e '.[train]'"
+    ) from exc
+
+from joseph.config import ModelConfig
+
+
+class CausalSelfAttention(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        self.n_heads = config.n_heads
+        self.head_dim = config.d_model // config.n_heads
+        self.qkv = nn.Linear(config.d_model, 3 * config.d_model)
+        self.projection = nn.Linear(config.d_model, config.d_model)
+        self.attention_dropout = nn.Dropout(config.dropout)
+        self.residual_dropout = nn.Dropout(config.dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch, length, width = x.shape
+        qkv = self.qkv(x).view(batch, length, 3, self.n_heads, self.head_dim)
+        q, k, v = qkv.unbind(dim=2)
+        q, k, v = q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)
+        scores = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
+        causal_mask = torch.triu(
+            torch.ones(length, length, device=x.device, dtype=torch.bool),
+            diagonal=1,
+        )
+        scores = scores.masked_fill(causal_mask, torch.finfo(scores.dtype).min)
+        weights = self.attention_dropout(F.softmax(scores, dim=-1))
+        output = weights @ v
+        output = output.transpose(1, 2).contiguous().view(batch, length, width)
+        return self.residual_dropout(self.projection(output))
+
+
+class FeedForward(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        hidden = 4 * config.d_model
+        self.network = nn.Sequential(
+            nn.Linear(config.d_model, hidden),
+            nn.GELU(),
+            nn.Linear(hidden, config.d_model),
+            nn.Dropout(config.dropout),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.network(x)
+
+
+class TransformerBlock(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        self.norm_attention = nn.LayerNorm(config.d_model)
+        self.attention = CausalSelfAttention(config)
+        self.norm_mlp = nn.LayerNorm(config.d_model)
+        self.mlp = FeedForward(config)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x + self.attention(self.norm_attention(x))
+        return x + self.mlp(self.norm_mlp(x))
+
+
+class JosephLanguageModel(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        config.validate()
+        self.config = config
+        self.token_embedding = nn.Embedding(config.vocab_size, config.d_model)
+        self.position_embedding = nn.Embedding(config.block_size, config.d_model)
+        self.embedding_dropout = nn.Dropout(config.dropout)
+        self.blocks = nn.Sequential(*[
+            TransformerBlock(config) for _ in range(config.n_layers)
+        ])
+        self.final_norm = nn.LayerNorm(config.d_model)
+        self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
+        self.lm_head.weight = self.token_embedding.weight
+
+    def forward(
+        self,
+        token_ids: torch.Tensor,
+        targets: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        if token_ids.ndim != 2:
+            raise ValueError("token_ids must have shape [batch, sequence]")
+        batch, length = token_ids.shape
+        if length > self.config.block_size:
+            raise ValueError("input sequence exceeds configured block_size")
+        positions = torch.arange(length, device=token_ids.device)
+        x = self.token_embedding(token_ids) + self.position_embedding(positions)[None, :, :]
+        x = self.embedding_dropout(x)
+        logits = self.lm_head(self.final_norm(self.blocks(x)))
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(
+                logits.reshape(batch * length, self.config.vocab_size),
+                targets.reshape(batch * length),
+            )
+        return logits, loss
+
+    @torch.no_grad()
+    def generate(
+        self,
+        token_ids: torch.Tensor,
+        max_new_tokens: int = 64,
+        temperature: float = 1.0,
+        top_k: int | None = 40,
+    ) -> torch.Tensor:
+        if temperature < 0:
+            raise ValueError("temperature cannot be negative")
+        for _ in range(max_new_tokens):
+            logits, _ = self(token_ids[:, -self.config.block_size :])
+            next_logits = logits[:, -1, :]
+            if temperature == 0:
+                next_token = torch.argmax(next_logits, dim=-1, keepdim=True)
+            else:
+                next_logits = next_logits / temperature
+                if top_k is not None and 0 < top_k < next_logits.size(-1):
+                    threshold = torch.topk(next_logits, top_k, dim=-1).values[:, -1, None]
+                    next_logits = next_logits.masked_fill(
+                        next_logits < threshold, torch.finfo(next_logits.dtype).min
+                    )
+                next_token = torch.multinomial(F.softmax(next_logits, dim=-1), num_samples=1)
+            token_ids = torch.cat((token_ids, next_token), dim=1)
+        return token_ids

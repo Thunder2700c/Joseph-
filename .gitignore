@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+artifacts/
+*.pt
+*.pth
+*.ckpt
+*.sqlite
+*.sqlite3
+.DS_Store
