@@ -37,7 +37,7 @@ These are foundations for experiments only. A model this small and randomly init
 ## Phase A — finish the source and memory foundation
 
 Before the serious model run:
-- Complete stages 1–9 in `character/life_stages.json`.
+- Complete and manually review stages 1–9 in `character/life_stages.json`. The 2026-10-31 dataset now has 106 starter memories, but stages 1–9 are not yet substantively complete.
 - Review every memory record for source, chronology, perspective, AU/canon label, and recallability.
 - Expand side stories and world knowledge beyond title-level catalogues where relevant.
 - Keep Hu Tao's own memories distinct from reports and reference facts.
