@@ -39,7 +39,7 @@ The Teyvat chronicle stores a canon story beat and a separate news transmission.
 
 Transmission channels include newspapers, merchants, travellers, Adventurers' Guild dispatches, letters, books and rumours. Every report retains a channel and reliability label. Hearing a story about Natlan is not the same as personally taking part in it.
 
-The starter chronicle includes 10 act-level original summaries for Fontaine and Natlan, plus 9 separate reports that reach Hu Tao as news. The life-memory dataset now contains 80 ordered entries, including 9 news-awareness memories. These are **not yet a scene-by-scene complete story database**. The format supports expanding each act into many ordered, independently retrievable story beats.
+The starter chronicle includes 10 act-level original summaries for Fontaine and Natlan, plus 9 separate reports that reach Hu Tao as news. The life-memory dataset now contains 84 ordered entries, including 9 news-awareness memories. These are **not yet a scene-by-scene complete story database**. The format supports expanding each act into many ordered, independently retrievable story beats.
 
 Import the chronicle:
 
