@@ -70,7 +70,7 @@ def main() -> None:
     size = save_checkpoint(args.output, model, config, args.steps)
     print(
         f"Saved fresh-from-random-init checkpoint ({size} bytes) to {args.output}. "
-        "This is not yet a chat-tuned assistant."
+        "This is not yet a trained Hu Tao character model."
     )
 
 
