@@ -45,6 +45,7 @@ class PersonaTests(unittest.TestCase):
     def test_explicit_feedback_persists_with_phase(self):
         persona = HuTaoPersona(phase="reborn_in_device")
         persona.record_feedback("Remember that I enjoy poetry.", trait="more poetic")
+        persona.mark_opening_scene_seen()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "persona.json"
             persona.save(path)
