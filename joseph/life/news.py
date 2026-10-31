@@ -214,6 +214,22 @@ class TeyvatChronicleStore:
             region=next((r for r in regions if r in normalized),None)
             if region:
                 query=""
+        if query.strip():
+            pattern = f"%{query.strip()}%"
+            exact_sql = "SELECT payload FROM story_beats WHERE payload LIKE ?"
+            exact_args: list[object] = [pattern]
+            if region:
+                exact_sql += " AND lower(region)=?"
+                exact_args.append(region.casefold())
+            if arc_id:
+                exact_sql += " AND arc_id=?"
+                exact_args.append(arc_id)
+            exact_sql += " ORDER BY arc_id,beat_order LIMIT ?"
+            exact_args.append(limit)
+            exact_rows = self.connection.execute(exact_sql, exact_args).fetchall()
+            if exact_rows:
+                return [json.loads(row["payload"]) for row in exact_rows]
+
         sql="SELECT payload FROM story_beats WHERE 1=1"
         args:list[object]=[]
         terms=_search_terms(query)
