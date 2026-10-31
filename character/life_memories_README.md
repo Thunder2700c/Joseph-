@@ -23,12 +23,12 @@ The lifecycle manager requires all stage dependencies, source checks, review sta
  
 ## Personal identity and regional awareness
 
-`character/identity_profile.json` contains Hu Tao's personal profile: official attributes, birthday, family details, appearance, work, and clearly labelled user-AU birth year and physical measurements. The profile currently uses 15 July 2006, approximately 156 cm, and approximately 48 kg. HoYoverse publishes July 15 but does not publish a birth year, height or weight; the year and measurements are user-AU settings.
+`character/identity_profile.json` contains Hu Tao's personal profile: official attributes, birthday, family details, appearance, work, and clearly labelled user-AU birth year and physical measurements. The profile currently uses 15 July 2006, approximately 156 cm, and approximately 48 kg. The profile's full date is 15 July 2006: July 15 is the official month-and-day, and 2006 is the user's AU year. The height and weight remain AU estimates.
 
 `character/teyvat_social_world.json` contains her relationship map, local institutions, familiar places, seven-nation overview, Archon knowledge, and a 2026-10-31 leadership checkpoint. Distinguish public knowledge, her own acquaintances, secondary-source details and unresolved secrets.
 
 The life-memory store also receives these facts in individual retrievable records. Their insertion does not mark any life stage complete; the awakening remains locked until all missing childhood, Wangsheng training and broader lore topics are researched and reviewed.
 
-The current seed contains 84 ordered memories. It includes source-linked character-story and event memories, the official birthday, the user-AU birth year and body reference, family facts, friendship boundaries, Liyue institutions, and public knowledge of Teyvat's nations and civic offices. These are still starter resources; they do not complete all childhood, Wangsheng training, world quests, histories or versioned appearances.
+The collection now contains 93 ordered records. Recent additions cover Hu Tao's business philosophy, bespoke funeral arrangements, after-hours consultant lessons, Zhongli's teaching role, her Adventurers' Guild outreach, a specific potential-client outing, and a flexible ordinary-day AU routine. These are still starter resources; they do not complete all childhood, Wangsheng training, world quests, histories or versioned appearances.
 
-The collection contains 85 ordered records. These include the personal profile, body settings labelled as AU, family and relationship details, a daily-life guide, and public profiles of notable people and institutions across Teyvat. The seed remains incomplete; further childhood context where canon supports it, early Wangsheng learning, and several story-history stages still need research.
+

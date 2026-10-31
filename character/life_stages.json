@@ -55,7 +55,11 @@
         "birth_year",
         "physical_profile",
         "physical_appearance",
-        "profile_details"
+        "profile_details",
+        "business_growth",
+        "service_customization",
+        "after_hours_training",
+        "zhongli_training"
       ]
     },
     {
@@ -82,7 +86,10 @@
         "beidou",
         "ningguang",
         "keqing",
-        "xiao"
+        "xiao",
+        "morning_routine",
+        "workday_rhythm",
+        "night_walk_and_poetry"
       ]
     },
     {
@@ -101,7 +108,9 @@
         "grandfather_family_connection",
         "exquisite_night_chimes",
         "summoners_summit_tcg",
-        "cherries_snow_laden_outfit_story"
+        "cherries_snow_laden_outfit_story",
+        "client_outreach",
+        "adventurers_guild_business"
       ]
     },
     {
