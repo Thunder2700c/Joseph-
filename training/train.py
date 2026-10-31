@@ -10,6 +10,7 @@ import torch
 
 from joseph.config import ModelConfig
 from joseph.model import JosephLanguageModel
+from joseph.tokenizer import ByteBPETokenizer
 from training.checkpoint import save_checkpoint
 from training.tokenize_corpus import tokenize_text_file
 
@@ -81,6 +82,10 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=1000)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--seq-len", type=int, default=128)
+    parser.add_argument("--d-model", type=int, default=256)
+    parser.add_argument("--n-layers", type=int, default=6)
+    parser.add_argument("--n-heads", type=int, default=8)
+    parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--eval-batches", type=int, default=10)
@@ -92,6 +97,10 @@ def main() -> None:
         parser.error("steps/batch-size must be positive and seq-len must be >= 8")
     if args.eval_interval < 1 or args.eval_batches < 1:
         parser.error("eval-interval and eval-batches must be positive")
+    if args.d_model < 1 or args.n_layers < 1 or args.n_heads < 1:
+        parser.error("model dimensions must be positive")
+    if args.d_model % args.n_heads:
+        parser.error("--d-model must be divisible by --n-heads")
 
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
@@ -105,12 +114,12 @@ def main() -> None:
     if device == "cuda" and not torch.cuda.is_available():
         parser.error("CUDA was requested but is not available")
 
+    tokenizer = ByteBPETokenizer.load(args.tokenizer)
     cache_dir = Path(args.token_cache_dir) if args.token_cache_dir else Path(args.output).parent / "token_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     train_cache = cache_dir / "train.bin"
     train_manifest = tokenize_text_file(args.input, args.tokenizer, train_cache)
     validation_data = None
-    validation_manifest = None
     if args.validation:
         validation_cache = cache_dir / "validation.bin"
         validation_manifest = tokenize_text_file(
@@ -122,8 +131,12 @@ def main() -> None:
 
     train_data = open_token_stream(train_cache, train_manifest["token_count"])
     config = ModelConfig(
-        vocab_size=__import__("joseph.tokenizer", fromlist=["ByteBPETokenizer"]).ByteBPETokenizer.load(args.tokenizer).vocab_size,
+        vocab_size=tokenizer.vocab_size,
+        d_model=args.d_model,
+        n_layers=args.n_layers,
+        n_heads=args.n_heads,
         block_size=args.seq_len,
+        dropout=args.dropout,
     )
     config.validate()
     model = JosephLanguageModel(config).to(device)

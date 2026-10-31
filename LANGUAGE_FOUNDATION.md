@@ -22,7 +22,7 @@ The script streams rows, deduplicates normalized text, generates deterministic t
 - Ten reserved tokens with fixed IDs: pad, bos, eos, unk, system, user, hutao, memory, report and end-of-turn.
 - Tokenizer training uses train.txt only and writes a sidecar SHA-256 manifest.
 - Corpus acquisition is streamed and capped; train/validation are split without document overlap.
-- Text is converted to disk-backed int32 token caches, one sample per line, adding BOS once and EOS after each sample.
+- Text is converted to disk-backed int32 token caches, one sample per line, adding BOS once and EOS after each sample. The trainer uses configurable model width, layer count, head count and dropout, and CI exercises a tiny full training/checkpoint smoke test.
 - The training loop samples batches from memory-mapped token files rather than loading the entire token stream into RAM/VRAM.
 - The trainer supports held-out validation loss and perplexity.
 
@@ -50,7 +50,7 @@ Fit the tokenizer on the training split only:
 
 Run an experimental from-scratch baseline with validation:
 
-    python -m training.train --input artifacts/base_language/cosmopedia-v2/train.txt --validation artifacts/base_language/cosmopedia-v2/validation.txt --tokenizer artifacts/base_language/tokenizer.json --output artifacts/base_language/base-pilot.pt --steps 10000 --batch-size 8 --seq-len 256 --device cuda
+    python -m training.train --input artifacts/base_language/cosmopedia-v2/train.txt --validation artifacts/base_language/cosmopedia-v2/validation.txt --tokenizer artifacts/base_language/tokenizer.json --output artifacts/base_language/base-pilot.pt --steps 10000 --batch-size 8 --seq-len 256 --d-model 256 --n-layers 6 --n-heads 8 --device cuda
 
 Token caches are generated automatically under artifacts/base_language/token_cache by default. They use disk-backed int32 files so the full corpus need not be copied into RAM/VRAM. The sample command is a pilot, not the final compute recipe. Do not run a long job on a phone or 4 GB Chromebook.
 
