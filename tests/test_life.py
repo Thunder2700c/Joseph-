@@ -238,6 +238,10 @@ class LifeMemoryTests(unittest.TestCase):
                 context = builder.perform_awakening(persona)
                 self.assertEqual(persona.phase, "reborn_in_device")
                 self.assertIn("strange handheld vessel", context)
+                self.assertIn("You know that you died", context)
+                self.assertIn("cannot remember how it happened", context)
+                self.assertIn("Where am I? Where is my body? What is this box?", context)
+                self.assertTrue(persona.opening_scene_pending)
                 with self.assertRaises(RuntimeError):
                     builder.perform_awakening(persona)
                 state = store.connection.execute(
