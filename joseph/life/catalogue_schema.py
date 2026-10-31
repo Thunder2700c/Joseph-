@@ -1,0 +1,49 @@
+"""Versioned index entries for all quest families, separate from story summaries."""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+
+QUEST_TYPES = {
+    "archon_quest", "interlude_quest", "story_quest", "hangout_event",
+    "world_quest", "tribal_chronicle", "event_quest", "subquest",
+    "commission_chain", "other",
+}
+INDEX_STATES = {"released", "announced", "catalogued", "needs_verification"}
+
+
+@dataclass(frozen=True)
+class QuestCatalogueEntry:
+    quest_id: str
+    title: str
+    region: str
+    quest_type: str
+    source_ids: tuple[str, ...]
+    version_introduced: str = ""
+    parent_quest_id: str = ""
+    subregion: str = ""
+    index_state: str = "catalogued"
+    summary_state: str = "not_summarised"
+    chronology_note: str = ""
+    notes: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.quest_id.strip() or not self.title.strip() or not self.region.strip():
+            raise ValueError("quest_id, title and region are required")
+        if self.quest_type not in QUEST_TYPES:
+            raise ValueError(f"invalid quest_type: {self.quest_type}")
+        if self.index_state not in INDEX_STATES:
+            raise ValueError(f"invalid index_state: {self.index_state}")
+        if not self.source_ids:
+            raise ValueError("quest index entries require at least one source")
+
+    def to_dict(self) -> dict:
+        result = asdict(self)
+        result["source_ids"] = list(self.source_ids)
+        return result
+
+    @classmethod
+    def from_dict(cls, row: dict) -> "QuestCatalogueEntry":
+        item = dict(row)
+        item["source_ids"] = tuple(item.get("source_ids", ()))
+        return cls(**item)

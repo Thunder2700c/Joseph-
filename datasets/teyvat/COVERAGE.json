@@ -1,0 +1,53 @@
+{
+  "knowledge_checkpoint": "2026-10-31",
+  "counts": {
+    "archon_and_interlude_act_summaries": 50,
+    "in_world_news_reports_for_archon_acts": 50,
+    "quest_catalogue_total": 257,
+    "world_quest_title_index": 129,
+    "story_quest_chapter_index": 55,
+    "hu_tao_story_subquest_titles": 4,
+    "hangout_chapter_index": 19,
+    "official_publisher_news_bulletins": 14,
+    "common_knowledge_facts": 262,
+    "hu_tao_life_memory_records": 33
+  },
+  "quest_catalogue_types": {
+    "archon_quest": 45,
+    "interlude_quest": 5,
+    "world_quest": 129,
+    "story_quest": 55,
+    "subquest": 4,
+    "hangout_event": 19
+  },
+  "world_quest_region_counts": {
+    "Mondstadt": 17,
+    "Liyue": 18,
+    "Inazuma": 15,
+    "Sumeru": 15,
+    "Fontaine": 15,
+    "Natlan": 20,
+    "Nod-Krai": 24,
+    "Snezhnaya": 5
+  },
+  "data_quality": {
+    "archon_quest_summaries": "act_level_only",
+    "world_quests": "title_index_needs_verification_and_summaries",
+    "story_quests": "chapter_title_index_only",
+    "hangouts": "chapter_title_index_only",
+    "event_stories": "incomplete",
+    "books_and_item_lore": "incomplete",
+    "artifact_and_weapon_stories": "incomplete",
+    "character_stories_and_voiceovers": "incomplete",
+    "full_teyvat_history_and_cosmology": "incomplete",
+    "hu_tao_early_life": "incomplete",
+    "android_chat_and_inference_integration": "not_implemented"
+  },
+  "knowledge_separation": {
+    "game_canon": "released story facts only",
+    "in_world_news": "user-authored AU information route",
+    "publisher_news": "out-of-world official announcements",
+    "teyvat_everyday_life_assumptions": "not canon"
+  },
+  "rule": "Do not label the Teyvat database complete until story, side-quest, branch, event, item, character, history and version coverage has been researched, sourced, reviewed and tested."
+}

@@ -1,66 +1,49 @@
-"""Import JSONL source/entity/fact records into a local SQLite knowledge DB."""
+"""Import source-aware common-world and Teyvat assumption records."""
 
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
-from typing import Iterable
 
-from .schema import EntityRecord, FactRecord, SourceRecord
+from .schema import KnowledgeFact, KnowledgeSource
 from .store import KnowledgeStore
 
 
 def read_jsonl(path: str | Path) -> list[dict]:
-    records = []
-    for line_number, raw_line in enumerate(
-        Path(path).read_text(encoding="utf-8").splitlines(), start=1
-    ):
-        if not raw_line.strip():
+    result = []
+    for number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
             continue
         try:
-            record = json.loads(raw_line)
+            data = json.loads(line)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"{path}:{line_number}: invalid JSON: {exc}") from exc
-        if not isinstance(record, dict):
-            raise ValueError(f"{path}:{line_number}: each JSONL row must be an object")
-        records.append(record)
-    return records
+            raise ValueError(f"{path}:{number}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValueError(f"{path}:{number}: expected an object")
+        result.append(data)
+    return result
 
 
-def ingest_bundle(
-    sources_path: str | Path,
-    entities_path: str | Path,
-    facts_path: str | Path,
-    database_path: str | Path,
-) -> tuple[int, int, int]:
-    sources = read_jsonl(sources_path)
-    entities = read_jsonl(entities_path)
-    facts = read_jsonl(facts_path)
-
-    with KnowledgeStore(database_path) as store:
-        for record in sources:
-            store.add_source(SourceRecord(**record))
-        for record in entities:
-            record["aliases"] = tuple(record.get("aliases", ()))
-            store.add_entity(EntityRecord(**record))
-        for record in facts:
-            record["source_ids"] = tuple(record.get("source_ids", ()))
-            store.add_fact(FactRecord(**record))
-
-    return len(sources), len(entities), len(facts)
+def ingest(sources_path: str, facts_path: str, database: str) -> int:
+    with KnowledgeStore(database) as store:
+        for row in read_jsonl(sources_path):
+            store.add_source(KnowledgeSource(**row))
+        for row in read_jsonl(facts_path):
+            for key in ("source_ids", "tags", "related_terms"):
+                row[key] = tuple(row.get(key, ()))
+            store.add_fact(KnowledgeFact(**row))
+        return store.count()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sources", default="datasets/jojo/sources.jsonl")
-    parser.add_argument("--entities", default="datasets/jojo/parts.jsonl")
-    parser.add_argument("--facts", default="datasets/jojo/facts.jsonl")
-    parser.add_argument("--db", default="local/jojo_knowledge.sqlite")
+    parser.add_argument("--sources", default="datasets/common_world/sources.jsonl")
+    parser.add_argument("--facts", default="datasets/common_world/facts.jsonl")
+    parser.add_argument("--db", default="local/common_knowledge.sqlite")
     args = parser.parse_args()
-    counts = ingest_bundle(args.sources, args.entities, args.facts, args.db)
-    print(f"Imported sources={counts[0]}, entities={counts[1]}, facts={counts[2]}")
-    print(f"Knowledge database: {args.db}")
+    count = ingest(args.sources, args.facts, args.db)
+    print(f"Loaded {count} common-world and Teyvat-assumption facts into {args.db}")
 
 
 if __name__ == "__main__":

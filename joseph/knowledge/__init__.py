@@ -1,6 +1,6 @@
-"""Sourced, continuity-aware fictional-universe knowledge store."""
+"""Source-aware common-world knowledge."""
 
-from .schema import EntityRecord, FactRecord, SourceRecord
+from .schema import KnowledgeFact, KnowledgeSource
 from .store import KnowledgeStore
 
-__all__ = ["EntityRecord", "FactRecord", "SourceRecord", "KnowledgeStore"]
+__all__ = ["KnowledgeFact", "KnowledgeSource", "KnowledgeStore"]

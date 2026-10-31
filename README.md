@@ -86,3 +86,21 @@ We can build detailed, original, scene-by-scene story summaries and fact records
 - `datasets/world_user/` — user-taught facts schema and guidance
 - `training/` — model training and explicitly approved world-fact export
 - `android/` — single-thread UI and Android runtime planning
+
+## Expanded knowledge checkpoint (2026-10-31)
+
+- `datasets/common_world/` contains 262 source-aware everyday-life facts: anatomy, digestion, bowel and urinary functions, hygiene, sex and gender, reproduction, relationships, emotions, adult vocabulary and media literacy.
+- Teyvat common-life assumptions are explicitly marked as assumptions, not canon. Non-human species are not automatically assigned human biology.
+- `datasets/teyvat/story_beats.jsonl` contains 50 act-level Archon Quest and Interlude summaries, with 50 separate AU news transmissions in `news_reports.jsonl`.
+- `quest_catalogue.jsonl` indexes 257 quest entries: 50 Archon/Interlude acts, 129 World Quest titles, 55 Story Quest chapters, 4 Hu Tao Story Quest subquests and 19 Hangout chapters.
+- `release_news.jsonl` contains 14 out-of-world HoYoverse publisher bulletins, kept separate from Hu Tao's Teyvat awareness.
+- The World Quest, Story Quest and Hangout entries are title-level catalogue records; they are not all fully summarised. Scene-level Archon Quest expansion and complete side-story coverage remain unfinished.
+
+The database import commands are:
+
+    python -m joseph.knowledge.ingest --db local/common_knowledge.sqlite
+    python -m joseph.life.news_ingest --db local/teyvat_chronicle.sqlite
+    python -m joseph.life.catalogue_ingest --db local/quest_catalogue.sqlite
+    python -m joseph.life.release_news_ingest --db local/official_news.sqlite
+
+The knowledge corpus is retrieved into the model context when relevant. This is not neural training; neural training begins only after dataset review and a separate training plan.

@@ -101,6 +101,21 @@ class NewsTransmission:
         return data
 
 
+_STOPWORDS = {
+    "the", "a", "an", "about", "tell", "me", "my", "to", "what", "is",
+    "are", "of", "for", "can", "you", "please", "do", "does", "did",
+    "and", "or", "in", "on", "at", "how", "why", "when", "where",
+    "was", "were", "with", "this", "that", "it", "i", "we", "our", "your",
+}
+
+
+def _search_terms(query: str) -> list[str]:
+    return list(dict.fromkeys(
+        term.lower() for term in re.findall(r"[\\w]+", query, flags=re.UNICODE)
+        if len(term) > 1 and term.lower() not in _STOPWORDS
+    ))[:12]
+
+
 class TeyvatChronicleStore:
     def __init__(self, path: str | Path):
         self.path=Path(path)

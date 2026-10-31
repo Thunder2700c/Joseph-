@@ -2,16 +2,19 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from joseph.knowledge import KnowledgeFact, KnowledgeStore, KnowledgeSource
+from joseph.life import QuestCatalogueEntry, QuestCatalogueStore
 from joseph.memory import MemoryStore
-from joseph.world import WorldKnowledgeStore
 from joseph.recall import RecallContextBuilder
+from joseph.world import WorldKnowledgeStore
 
 
 class RecallContextTests(unittest.TestCase):
     def test_context_uses_recent_history_and_user_taught_facts(self):
         with tempfile.TemporaryDirectory() as directory:
-            with MemoryStore(Path(directory) / "memory.sqlite") as chat, WorldKnowledgeStore(
-                Path(directory) / "world.sqlite"
+            root = Path(directory)
+            with MemoryStore(root / "conversation.sqlite") as chat, WorldKnowledgeStore(
+                root / "world.sqlite"
             ) as world:
                 chat.add_turn("user", "I live in a place with a famous clock tower.")
                 chat.add_turn("assistant", "Tell me more about it.")
@@ -21,6 +24,41 @@ class RecallContextTests(unittest.TestCase):
                 self.assertIn("RELEVANT CONTINUOUS CONVERSATION HISTORY", context)
                 self.assertIn("FACTS LEARNED ABOUT THE USER'S WORLD", context)
                 self.assertIn("known for a clock tower", context)
+
+    def test_context_retrieves_earth_knowledge_and_quest_titles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with MemoryStore(root / "conversation.sqlite") as chat, WorldKnowledgeStore(
+                root / "world.sqlite"
+            ) as world, KnowledgeStore(root / "common.sqlite") as common, QuestCatalogueStore(
+                root / "quests.sqlite"
+            ) as quests:
+                common.add_source(KnowledgeSource(
+                    source_id="source", title="Everyday knowledge",
+                    url="https://example.invalid/everyday",
+                ))
+                common.add_fact(KnowledgeFact(
+                    fact_id="digestion", domain="human_body", topic="digestion",
+                    term="digestion", definition="Food is broken down and nutrients absorbed.",
+                    status="established", scope="earth_human_baseline",
+                    source_ids=("source",),
+                ))
+                quests.add_source({
+                    "source_id":"quest_source","title":"Quest index",
+                    "url":"https://example.invalid/quests"
+                })
+                quests.add_quest(QuestCatalogueEntry(
+                    quest_id="hu_tao_story", title="Yet the Butterfly Flutters Away",
+                    region="Liyue", quest_type="story_quest",
+                    source_ids=("quest_source",), parent_quest_id="Hu Tao",
+                ))
+                builder = RecallContextBuilder(
+                    chat, world, common_knowledge=common, quest_catalogue=quests
+                )
+                context = builder.build("Explain digestion and Hu Tao's quest")
+                self.assertIn("EVERYDAY LIFE AND GENERAL WORLD KNOWLEDGE", context)
+                self.assertIn("QUEST CATALOGUE MATCHES", context)
+                self.assertIn("Yet the Butterfly Flutters Away", context)
 
 
 if __name__ == "__main__":

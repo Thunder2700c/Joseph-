@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from joseph.life import LifeMemoryStore, TeyvatChronicleStore
 from joseph.memory import MemoryStore
 from joseph.world import WorldKnowledgeStore
+from joseph.knowledge import KnowledgeStore
+from joseph.life import QuestCatalogueStore
 
 
 @dataclass
@@ -19,6 +21,8 @@ class RecallContextBuilder:
     world_knowledge: WorldKnowledgeStore
     life_memories: LifeMemoryStore | None = None
     chronicle: TeyvatChronicleStore | None = None
+    common_knowledge: KnowledgeStore | None = None
+    quest_catalogue: QuestCatalogueStore | None = None
 
     def build(
         self,
@@ -68,14 +72,43 @@ class RecallContextBuilder:
                 sections.append("RELEVANT TEYVAT LIFE MEMORIES\n" + "\n".join(lines))
 
         if self.chronicle is not None:
+            beats = self.chronicle.search_beats(user_message, limit=news_reports)
+            if beats:
+                lines = [
+                    f"- {item['region']} — {item['beat_title']}: {item['summary']} "
+                    "(canon reference; not a personal memory unless separately marked witnessed)"
+                    for item in beats
+                ]
+                sections.append("TEYVAT STORY AND CANON REFERENCES\n" + "\n".join(lines))
+
             reports = self.chronicle.known_news(user_message, limit=news_reports)
             if reports:
                 lines = [
                     f"- Hu Tao learned via {item['report']['channel']} "
-                    f"({item['report']['reliability']}): "
+                    f"({item['report']['reliability']}; {item['report']['knowledge_basis']}): "
                     f"{item['report']['report_text']}"
                     for item in reports
                 ]
                 sections.append("NEWS HEARD ABOUT OTHER REGIONS\n" + "\n".join(lines))
+
+        if self.quest_catalogue is not None:
+            quests = self.quest_catalogue.search(user_message, limit=8)
+            if quests:
+                lines = [
+                    f"- {item.title} [{item.quest_type}; {item.region}; "
+                    f"index={item.index_state}; summary={item.summary_state}]"
+                    for item in quests
+                ]
+                sections.append("QUEST CATALOGUE MATCHES (TITLE INDEX, NOT FULL PLOT)\n" + "\n".join(lines))
+
+        if self.common_knowledge is not None:
+            common = self.common_knowledge.search(user_message, limit=10)
+            if common:
+                lines = [
+                    f"- {item.term}: {item.definition} "
+                    f"(status={item.status}; scope={item.scope})"
+                    for item in common
+                ]
+                sections.append("EVERYDAY LIFE AND GENERAL WORLD KNOWLEDGE\n" + "\n".join(lines))
 
         return "\n\n".join(sections)
