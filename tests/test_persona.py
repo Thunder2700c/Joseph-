@@ -15,9 +15,8 @@ class PersonaTests(unittest.TestCase):
         self.assertIn("living your life in Teyvat", context)
         self.assertNotIn("strange handheld vessel", context)
 
-    def test_awakening_is_a_separate_final_phase(self):
-        persona = HuTaoPersona()
-        persona.awaken()
+    def test_reborn_phase_is_a_separate_final_state(self):
+        persona = HuTaoPersona(phase="reborn_in_device")
         context = persona.render_context()
         self.assertEqual(persona.phase, "reborn_in_device")
         self.assertIn("do not remember dying", context)
@@ -26,8 +25,7 @@ class PersonaTests(unittest.TestCase):
         self.assertIn("not established Genshin Impact canon", context)
 
     def test_explicit_feedback_persists_with_phase(self):
-        persona = HuTaoPersona()
-        persona.awaken()
+        persona = HuTaoPersona(phase="reborn_in_device")
         persona.record_feedback("Remember that I enjoy poetry.", trait="more poetic")
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "persona.json"
