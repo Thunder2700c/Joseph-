@@ -106,6 +106,9 @@ class ConfigTests(unittest.TestCase):
         config.validate()
         self.assertLess(config.estimated_weight_bytes(), 1_000_000_000)
         self.assertGreater(config.estimated_parameter_count(), 1_000_000)
+        self.assertEqual(config.max_weight_bytes, 1_000_000_000)
+        with self.assertRaises(ValueError):
+            ModelConfig(max_weight_bytes=1_000_000_001).validate()
 
 
 if __name__ == "__main__":

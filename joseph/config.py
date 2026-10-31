@@ -1,6 +1,9 @@
-"""Configuration for Joseph's small decoder-only language model."""
+"""Configuration for Joseph's from-scratch decoder-only language model."""
 
 from dataclasses import asdict, dataclass
+
+# Hard ceiling for the complete distributable AI payload, in decimal bytes.
+AI_PACKAGE_MAX_BYTES = 1_000_000_000
 
 
 @dataclass
@@ -11,7 +14,7 @@ class ModelConfig:
     n_heads: int = 8
     block_size: int = 256
     dropout: float = 0.1
-    max_weight_bytes: int = 1_000_000_000
+    max_weight_bytes: int = AI_PACKAGE_MAX_BYTES
 
     def validate(self) -> None:
         if self.vocab_size < 260:
@@ -26,6 +29,11 @@ class ModelConfig:
             raise ValueError("dropout must be in [0, 1)")
         if self.max_weight_bytes <= 0:
             raise ValueError("max_weight_bytes must be positive")
+        if self.max_weight_bytes > AI_PACKAGE_MAX_BYTES:
+            raise ValueError(
+                "checkpoint ceiling cannot exceed the complete AI package ceiling "
+                f"of {AI_PACKAGE_MAX_BYTES} bytes"
+            )
         if self.estimated_weight_bytes() > self.max_weight_bytes:
             raise ValueError("estimated FP32 model weights exceed max_weight_bytes")
 

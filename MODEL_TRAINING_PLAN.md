@@ -4,6 +4,10 @@ This plan defines how to turn the current from-scratch Transformer prototype int
 
 ## The target
 
+**Hard size ceiling:** the complete distributable AI inference payload must be at most **1,000,000,000 bytes** including model weights, tokenizer, vocabulary, configuration, generation metadata and any auxiliary AI models/assets. There is no minimum size and no requirement to fill the cap. Smaller is acceptable; select the smallest model that passes evaluation. Run the bundle validator before release.
+
+**From-scratch only:** initialize all neural weights randomly and train the tokenizer from approved text. Do not download, wrap, rebuild, distil from, or fine-tune third-party pretrained LLMs or use third-party model weights, adapters, embedding models or rerankers. The later Hu Tao character-specialization stage continues training only the base model created by this project. Licensed text datasets are allowed; pretrained neural weights are not.
+
 Build a compact, offline-capable **Hu Tao character language model**. It is not a generic assistant that is made to roleplay Hu Tao by a long system prompt. The model's learned language behaviour and character identity should come from its training data and objectives.
 
 In ordinary in-character conversation, the speaker is Hu Tao. Conversation data should identify her as `hutao`, not as a generic `assistant`. The software implementation is still a neural language model; that engineering fact does not belong in Hu Tao's in-character self-description.
@@ -70,7 +74,7 @@ The tokenizer now reserves stable IDs for system, user, Hu Tao, memory, report a
 
 ## Phase D — base language training (may proceed alongside Phase A)
 
-Train a decoder-only language model from random initialization on the approved broad language corpus. This general-language phase may proceed while Hu Tao's former-life stages are being researched and reviewed; it does not authorise Hu Tao-specific identity/dialogue training. The model needs enough general language ability to understand and respond to ordinary human conversation; the Hu Tao memory set alone is far too small and narrow for this.
+Train this project's decoder-only language model from random initialization on the approved broad language corpus. No third-party checkpoint, pretrained model or neural weight may be used. This general-language phase may proceed while Hu Tao's former-life stages are being researched and reviewed; it does not authorise Hu Tao-specific identity/dialogue training. The model needs enough general language ability to understand and respond to ordinary human conversation; the Hu Tao memory set alone is far too small and narrow for this.
 
 The current `training/train.py` uses disk-backed int32 token caches and samples mini-batches from the memory-mapped files, avoiding a full token-stream copy into RAM/VRAM. Measure:
 - train and validation loss/perplexity;
@@ -83,7 +87,7 @@ Do not mistake memorisation of the corpus for language competence. Keep a held-o
 
 ## Phase E — direct Hu Tao character training
 
-Continue training the language model on curated first-person Hu Tao material and multi-turn dialogue examples. The goal is to internalise her identity and speaking behaviour in the model weights, not to rely on a huge system prompt.
+Continue training the same base checkpoint created by this project on curated first-person Hu Tao material and multi-turn dialogue examples. This is staged training of our own from-scratch model, not fine-tuning or rebuilding a third-party model. The goal is to internalise her identity and speaking behaviour in the model weights, not to rely on a huge system prompt.
 
 Teach:
 - first-person identity and biographical continuity;
@@ -156,4 +160,4 @@ The first selected source is the Cosmopedia v2 configuration from Hugging Face S
 
 The user works with Android-first constraints and limited local compute. Do not assume the whole from-scratch training run can run on the phone, Chromebook or free CI. Estimate corpus size, model size, optimiser memory, sequence length, batch size, number of tokens and total compute before launching a long job. Hosted training compute may be considered only with explicit attention to limits and reproducibility; the final app must not depend on cloud inference.
 
-The target checkpoint ceiling is 1 GB, but fitting under 1 GB does not guarantee usable quality. Model size, training data quality, training-token count, tokenizer and evaluation all matter.
+The complete distributable AI payload has an absolute maximum of 1,000,000,000 bytes. Count the checkpoint, tokenizer/vocabulary, configuration, metadata and every auxiliary AI asset together. No additional embedding model, reranker, adapter or second model may be included if the total would exceed the cap. The cap is not a size target; any smaller package is acceptable. The training corpus is not part of the inference bundle and must not be shipped with it. Model size under the cap does not guarantee usable quality; data, training-token count and evaluation still matter.

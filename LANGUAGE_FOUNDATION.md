@@ -4,6 +4,12 @@ Decision date: 2026-10-31
 Character: Hu Tao  
 Repository codename: Joseph
 
+## Permanent model constraints
+
+- The entire distributable AI inference payload must remain at or below **1,000,000,000 bytes**. This includes checkpoint weights, tokenizer/vocabulary, config, generation metadata and any other neural/AI assets. There is no minimum size; smaller is fine. Do not add model components that take the combined bundle over the cap.
+- Every model weight is initialized randomly. The tokenizer is trained on approved text. No third-party pretrained LLM, model weights, adapters, model distillation, pretrained embeddings or external reranking model may be used. Later character training continues only from this project's own base checkpoint.
+- Text-only datasets are allowed after licence review and stay outside the final inference bundle.
+
 ## What changed
 
 The user confirmed that Hu Tao's Teyvat knowledge must be limited to what she personally experiences or what ordinary people could plausibly hear, read or discuss. Traveler-only secrets and private conversations are not part of her knowledge. See character/knowledge_policy.md.

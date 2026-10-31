@@ -3,9 +3,19 @@
 > **Read this file first when continuing work in a new ChatGPT conversation.** It is the project's handoff summary and decision record. After reading it, inspect the current `main` branch and the linked source files before making changes; this document can become stale as the repository evolves.
 
 **Last handoff review:** 2026-10-31
+**Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
 **Latest language-foundation commit:** `9f9005a1f92b955e69d85dc97328042aa97bd814` (CI run #69 passed, 47 tests)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
+
+## Mandatory model constraints — never override these
+
+- The complete distributable AI inference payload has a hard maximum of **1,000,000,000 bytes**. This includes all model weights, tokenizer/vocabulary, configuration, generation metadata and every auxiliary model/AI asset. There is no minimum size; smaller is acceptable. Never choose or add components that push the combined payload above the cap.
+- The model must be built and trained from scratch. Initialize all neural weights randomly and train the tokenizer from approved text. Never import, wrap, rebuild, distil from, or fine-tune a third-party pretrained model. The later Hu Tao specialization phase continues training only the base model that this project trained itself.
+- Text datasets are allowed subject to licence/provenance review; pretrained neural weights are not. Keep training corpora out of the distributable AI payload.
+- Run the AI bundle validator before release. It must reject packages above the hard cap.
+
+These constraints are permanent instructions for every future ChatGPT conversation. Read PROJECT_BUILD_RULES.md before architecture or training changes.
 
 ## 1. Names and identity — do not confuse these
 
@@ -132,7 +142,7 @@ These are useful foundations, not a complete life or lore corpus.
 
 ### Current code status
 
-The repository contains a prototype from-scratch decoder-only Transformer, Rust-backed ByteLevel BPE tokenizer, streamed base-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities.
+The repository contains a prototype random-initialized decoder-only Transformer, project-trained ByteLevel BPE tokenizer pipeline, streamed text-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities. The complete distributable AI payload is strictly capped at 1,000,000,000 bytes; no pretrained model weights or external AI models may be used.
 
 Current default configuration in `joseph/config.py` remains a small baseline: vocabulary size 512, model width 256, 6 layers, 8 attention heads, 256-token context and a 1 GB weight ceiling. The default is approximately 4.94 million parameters and starts from random initialization. It is only a pipeline baseline, not a plausible finished conversational model. **There is no trained base model or capable Hu Tao checkpoint yet.**
 
@@ -182,7 +192,9 @@ When authorized by the roadmap, the Android app should provide offline inference
 - User develops primarily on Android and has limited local compute; do not assume a desktop GPU or powerful workstation is available.
 - Evaluate real training compute requirements before choosing a workflow. Do not promise that the entire from-scratch training job will fit on the phone, Chromebook or free CI.
 - No cloud inference; the final target is offline.
-- The final checkpoint target is no more than 1 GB. This is a weight-file ceiling, not a context-window target.
+- The complete distributable AI payload must be no more than 1,000,000,000 bytes, including weights, tokenizer, config, metadata and any auxiliary neural assets. It is not a target to fill; any smaller size is acceptable.
+- Train every neural weight from random initialization. Do not use or rebuild around a third-party pretrained LLM, third-party model weights, external adapters, distillation or separate pretrained embedding/reranking models.
+- The later Hu Tao specialization phase may continue training only the base weights created by this project. Text corpora are allowed after licence review but stay out of the inference bundle.
 - Make incremental, reviewable GitHub commits on `main`, verify file contents and references after writing, and do not claim CI passed unless a workflow run actually reports success.
 - Avoid unrelated scope expansion. Do not begin app work before the model gates pass.
 - Be direct about feasibility and failures. If a planned approach is too small or underpowered to produce the desired result, say so and propose a better route.

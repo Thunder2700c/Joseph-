@@ -45,7 +45,7 @@ The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer suppor
 
 ## Model size is not memory size
 
-The 1 GB limit is a **maximum neural-weight/checkpoint budget**, not a 1 GB context window.
+The 1 GB limit is a hard maximum for the **complete distributable AI inference payload**, not just the checkpoint and not the context window. It is 1,000,000,000 bytes total across weights, tokenizer/vocabulary, config, generation metadata and all auxiliary AI assets. There is no minimum size. The separately stored training corpus and user-owned memory databases are not bundled into this payload.
 
 - The current experimental Transformer is about 4.94 million parameters and roughly 19 MiB of raw FP32 weights.
 - Its default active context is 256 tokens; that token limit is separate from the weight budget.
@@ -53,6 +53,10 @@ The 1 GB limit is a **maximum neural-weight/checkpoint budget**, not a 1 GB cont
 - On each reply, retrieval selects useful old messages and facts rather than placing an entire lifetime of conversation into the active prompt.
 
 The current model is not yet capable of a convincing conversation. A small random model cannot become Hu Tao just by loading a few memories or a large roleplay prompt. It still needs broad language training, direct Hu Tao character training, evaluation and a reproducible standalone inference harness. Android work is deferred until the model passes its success gates.
+
+Before packaging a model, validate its full payload directory with the bundle-size validator.
+
+The model is built from scratch: random-initialized weights, project-trained tokenizer, text-data pretraining, then Hu Tao specialization on the project's own base checkpoint. Third-party pretrained model weights, wrappers, imported adapters, model distillation, pretrained embeddings and external rerankers are prohibited.
 
 ## Run tests
 
