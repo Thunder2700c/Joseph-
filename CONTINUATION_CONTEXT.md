@@ -144,7 +144,7 @@ These are useful foundations, not a complete life or lore corpus.
 
 The repository contains a prototype random-initialized decoder-only Transformer, project-trained ByteLevel BPE tokenizer pipeline, streamed text-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities. The complete distributable AI payload is strictly capped at 1,000,000,000 bytes; no pretrained model weights or external AI models may be used.
 
-Current default configuration in `joseph/config.py` remains a small baseline: vocabulary size 512, model width 256, 6 layers, 8 attention heads, 256-token context and a 1 GB weight ceiling. The default is approximately 4.94 million parameters and starts from random initialization. It is only a pipeline baseline, not a plausible finished conversational model. **There is no trained base model or capable Hu Tao checkpoint yet.**
+Current default configuration in `joseph/config.py` remains a small baseline: vocabulary size 512, model width 256, 6 layers, 8 attention heads, 256-token context and a checkpoint ceiling bounded by the complete 1,000,000,000-byte AI package cap. The default is approximately 4.94 million parameters and starts from random initialization. It is only a pipeline baseline, not a plausible finished conversational model. **There is no trained base model or capable Hu Tao checkpoint yet.**
 
 ### Required training philosophy
 
@@ -205,7 +205,7 @@ When authorized by the roadmap, the Android app should provide offline inference
 2. Check the latest commit on `main` and verify the current files, because this handoff summary is a snapshot.
 3. Continue the unfinished former-life work. Stage 1 remains shallow despite all minimum tags; Stage 2's new AU childhood details need review; stages 3–7 need depth audits; stages 8–9 have only starter coverage.
 4. Continue the general language foundation and controlled base-language experiments in parallel with life-data research. Do not begin Hu Tao-specific identity/dialogue training until stages 1–9 have sufficient researched content and explicit review; the 106-record expansion does not complete this gate.
-5. Inspect `LANGUAGE_FOUNDATION.md`, `MODEL_TRAINING_PLAN.md` and `character/knowledge_policy.md` for the current corpus, tokenizer, and point-of-view rules.
+5. Inspect `PROJECT_BUILD_RULES.md`, `LANGUAGE_FOUNDATION.md`, `MODEL_TRAINING_PLAN.md`, `docs/MODEL_AND_MEMORY_BUDGET.md` and `character/knowledge_policy.md` for the permanent from-scratch rule, full AI package cap, corpus and point-of-view rules.
 6. Begin Android app development only after the standalone Hu Tao model demonstrably passes the success gates above.
 
 **Final naming reminder: Joseph = repository codename. Hu Tao = the character.**
