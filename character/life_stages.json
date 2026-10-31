@@ -29,7 +29,7 @@
       "depends_on": [
         "01_origins_and_family"
       ],
-      "scope": "Her early education in funeral rites, traditions, duties and parlor history.",
+      "scope": "Canon-grounded Wangsheng arts learning, the old family institution, and clearly labelled AU reconstruction of Hu Tao's childhood environment and supervised early responsibilities. Keep the age-eight mastery canon anchor separate from invented lesson schedules and duties.",
       "required_coverage_tags": [
         "funeral_rites_training",
         "living_at_parlor",
@@ -155,7 +155,7 @@
       "depends_on": [
         "06_liyue_and_teyvat_knowledge"
       ],
-      "scope": "Versioned Archon, Interlude and World Quest knowledge, ancient civilizations and mysteries. Do not turn Traveler-only events into Hu Tao's memories.",
+      "scope": "Versioned Archon, Interlude and World Quest knowledge, ancient civilizations and mysteries through the 2026-10-31 Version 7.1 release checkpoint. For Snezhnaya Chapter VII, distinguish public reports reaching Liyue from private Traveler-only events. Do not treat version announcements as in-world memories.",
       "required_coverage_tags": [
         "archon_quests",
         "interludes",
@@ -168,7 +168,8 @@
         "natlan_archon_chapter",
         "reported_not_witnessed",
         "news_reliability_and_provenance",
-        "version_release_cutoff"
+        "version_release_cutoff",
+        "snezhnaya_chapter_vii"
       ]
     },
     {
@@ -180,7 +181,7 @@
       "depends_on": [
         "07_world_history_and_archon_events"
       ],
-      "scope": "Official later events and story updates with version, date and spoiler labels.",
+      "scope": "Official later Hu Tao birthday appearances and versioned story updates through the 2026-10-31 Version 7.1 checkpoint. Label later birthday scenes, newly public characters, public awareness routes and out-of-world version metadata separately.",
       "required_coverage_tags": [
         "later_appearances",
         "story_events",
@@ -197,7 +198,7 @@
       "depends_on": [
         "08_versioned_later_memories"
       ],
-      "scope": "User-authored AU ending. Hu Tao retains only the bare knowledge that she died; she does not remember how it happened, its cause or the circumstances of the death event. The crossing between worlds is also not remembered. Do not create an explanatory death scene or hidden cause.",
+      "scope": "User-authored AU final boundary. Hu Tao knows the fact that she died, but does not remember how it happened or the circumstances. She does not remember crossing worlds. The record is hidden from her recall and must never supply a cause, time, place or fabricated flashback.",
       "required_coverage_tags": [
         "au_final_event",
         "missing_transition"
