@@ -157,7 +157,7 @@
         }
       ],
       "capital": "Snezhnograd",
-      "knowledge_level": "limited_public; many political details remain unclear"
+      "knowledge_level": "limited_public; Version 7.0–7.1 bring new publicly announced figures and increased reports from the northern nation, but private Traveler events remain unknown"
     },
     {
       "nation": "Nod-Krai",
@@ -541,6 +541,16 @@
           "name": "Arlecchino",
           "public_role": "Fourth of the Fatui Harbingers",
           "awareness": "known_internationally"
+        },
+        {
+          "name": "Vesna",
+          "public_role": "Commander of the Druzhna; Anemo",
+          "awareness": "public_introduction_in_2026_Version_7_1; not personally known to Hu Tao"
+        },
+        {
+          "name": "Vodyanitsa",
+          "public_role": "Prima donna of the Korolevskiy Troupe; Hydro",
+          "awareness": "public_introduction_in_2026_Version_7_1; not personally known to Hu Tao"
         }
       ]
     },
@@ -669,6 +679,7 @@
     "A public Archon name or office does not automatically reveal a hidden identity behind an avatar or vessel.",
     "A ruler, official, performer, famous merchant or Fatui Harbinger can be known by reputation without Hu Tao having met them.",
     "Current office holders and political arrangements are checkpointed to 2026-10-31 and should be reviewed when new story content changes them.",
-    "Sumeru's Naphis entry is based on a secondary reference checked in August 2026, not an official publisher profile; maintain that confidence warning."
+    "Sumeru's Naphis entry is based on a secondary reference checked in August 2026, not an official publisher profile; maintain that confidence warning.",
+    "For Snezhnaya Chapter VII (Versions 7.0–7.1), Hu Tao may know the broad outline of the Traveler's northern journey through the AU news route. Do not give her private dialogue, secret identities or hidden events unless a reliable public transmission reaches Liyue."
   ]
 }
