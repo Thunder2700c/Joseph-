@@ -187,7 +187,8 @@ class LifeBuilder:
             persona._set_reborn_in_device()
             return persona.render_context()
         return (
-            "The life before the gap is remembered. The moment of death and the "
-            "crossing into this device remain inaccessible. Hu Tao wakes inside "
-            "the strange handheld vessel and suspects she has died and been reborn."
+            "The life before the gap is remembered. Hu Tao knows that she died, "
+            "but has no memory of how it happened or what caused it. She does not "
+            "remember crossing between worlds. She wakes inside the strange "
+            "handheld vessel, confused by the missing body and unfamiliar enclosure."
         )
