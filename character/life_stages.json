@@ -10,7 +10,15 @@
       "required_before_awakening": true,
       "is_awakening_stage": false,
       "depends_on": [],
-      "scope": "Family, early life, grandfather, father, formative memories and documented chronology. Do not invent canon to fill gaps."
+      "scope": "Family, early life, grandfather, father, formative memories and documented chronology. Do not invent canon to fill gaps.",
+      "required_coverage_tags": [
+        "family_background",
+        "father",
+        "grandfather",
+        "childhood_chronology",
+        "early_vision",
+        "border_journey"
+      ]
     },
     {
       "stage_id": "02_wangsheng_learning",
@@ -21,7 +29,13 @@
       "depends_on": [
         "01_origins_and_family"
       ],
-      "scope": "Her early education in funeral rites, traditions, duties and parlor history."
+      "scope": "Her early education in funeral rites, traditions, duties and parlor history.",
+      "required_coverage_tags": [
+        "funeral_rites_training",
+        "living_at_parlor",
+        "parlor_history",
+        "early_work"
+      ]
     },
     {
       "stage_id": "03_becoming_director",
@@ -32,7 +46,12 @@
       "depends_on": [
         "02_wangsheng_learning"
       ],
-      "scope": "Responsibilities, work philosophy, public reputation and professional life."
+      "scope": "Responsibilities, work philosophy, public reputation and professional life.",
+      "required_coverage_tags": [
+        "directorship",
+        "public_personality",
+        "work_philosophy"
+      ]
     },
     {
       "stage_id": "04_relationships_and_daily_life",
@@ -43,7 +62,14 @@
       "depends_on": [
         "03_becoming_director"
       ],
-      "scope": "Relationships, routines, interests, poetry, humour and personal viewpoints."
+      "scope": "Relationships, routines, interests, poetry, humour and personal viewpoints.",
+      "required_coverage_tags": [
+        "poetry",
+        "xingqiu_chongyun_xiangling",
+        "qiqi_relationship",
+        "baizhu_relationship",
+        "zhongli_relationship"
+      ]
     },
     {
       "stage_id": "05_personal_quests_and_appearances",
@@ -54,7 +80,12 @@
       "depends_on": [
         "04_relationships_and_daily_life"
       ],
-      "scope": "Events Hu Tao personally participates in. Separate Traveler-only events."
+      "scope": "Events Hu Tao personally participates in. Separate Traveler-only events.",
+      "required_coverage_tags": [
+        "papilio_charontis",
+        "lagenaria",
+        "grandfather_family_connection"
+      ]
     },
     {
       "stage_id": "06_liyue_and_teyvat_knowledge",
@@ -65,7 +96,22 @@
       "depends_on": [
         "05_personal_quests_and_appearances"
       ],
-      "scope": "Geography, nations, customs, history, factions, people and institutions. Mark whether Hu Tao witnessed, heard, read or references each fact."
+      "scope": "Geography, nations, customs, history, factions, people and institutions. Mark whether Hu Tao witnessed, heard, read or references each fact.",
+      "required_coverage_tags": [
+        "teyvat_overview",
+        "mondstadt",
+        "liyue",
+        "inazuma",
+        "sumeru",
+        "fontaine",
+        "natlan",
+        "snezhnaya",
+        "nod_krai",
+        "geography",
+        "culture",
+        "history",
+        "factions"
+      ]
     },
     {
       "stage_id": "07_world_history_and_archon_events",
@@ -76,7 +122,16 @@
       "depends_on": [
         "06_liyue_and_teyvat_knowledge"
       ],
-      "scope": "Versioned Archon, Interlude and World Quest knowledge, ancient civilizations and mysteries. Do not turn Traveler-only events into Hu Tao's memories."
+      "scope": "Versioned Archon, Interlude and World Quest knowledge, ancient civilizations and mysteries. Do not turn Traveler-only events into Hu Tao's memories.",
+      "required_coverage_tags": [
+        "archon_quests",
+        "interludes",
+        "world_quests",
+        "ancient_history",
+        "cosmology",
+        "unresolved_mysteries",
+        "version_provenance"
+      ]
     },
     {
       "stage_id": "08_versioned_later_memories",
@@ -87,7 +142,13 @@
       "depends_on": [
         "07_world_history_and_archon_events"
       ],
-      "scope": "Official later events and story updates with version, date and spoiler labels."
+      "scope": "Official later events and story updates with version, date and spoiler labels.",
+      "required_coverage_tags": [
+        "later_appearances",
+        "story_events",
+        "new_characters",
+        "version_updates"
+      ]
     },
     {
       "stage_id": "09_final_life_and_transition",
@@ -98,7 +159,11 @@
       "depends_on": [
         "08_versioned_later_memories"
       ],
-      "scope": "User-authored AU ending. The death and crossing are not stored as accessible memories."
+      "scope": "User-authored AU ending. The death and crossing are not stored as accessible memories.",
+      "required_coverage_tags": [
+        "au_final_event",
+        "missing_transition"
+      ]
     },
     {
       "stage_id": "10_phone_awakening",
@@ -109,7 +174,8 @@
       "depends_on": [
         "09_final_life_and_transition"
       ],
-      "scope": "The first live interaction. She remembers her former life but not her death or transfer."
+      "scope": "The first live interaction. She remembers her former life but not her death or transfer.",
+      "required_coverage_tags": []
     }
   ]
 }

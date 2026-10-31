@@ -16,9 +16,11 @@ def main() -> None:
         builder = LifeBuilder(store, args.plan)
         for row in builder.progress():
             status = row["status"].upper()
+            missing = ", ".join(row["missing_coverage"]) or "none"
             print(
                 f'{row["stage_id"]}: {row["title"]} | {status} | '
-                f'{row["reviewed_count"]}/{row["memory_count"]} reviewed memories'
+                f'{row["reviewed_count"]}/{row["memory_count"]} reviewed memories | '
+                f'missing coverage: {missing}'
             )
         print("READY TO AWAKEN:", "YES" if builder.ready_to_awaken() else "NO")
 

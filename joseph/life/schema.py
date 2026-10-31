@@ -52,6 +52,7 @@ class LifeMemory:
     places: tuple[str, ...] = ()
     emotional_tags: tuple[str, ...] = ()
     spoiler_scope: tuple[str, ...] = ()
+    coverage_tags: tuple[str, ...] = ()
     chronology_note: str = ""
     recalled_by_character: bool = True
 
@@ -79,11 +80,14 @@ class LifeMemory:
             raise ValueError("canon and supplementary memories require source_ids")
         if self.perspective == "hidden_transition" and self.recalled_by_character:
             raise ValueError("hidden transition memories cannot be recalled by Hu Tao")
+        if any(not tag.strip() for tag in self.coverage_tags):
+            raise ValueError("coverage tags cannot be empty")
 
     def to_dict(self) -> dict:
         data = asdict(self)
         for key in (
-            "source_ids", "people", "places", "emotional_tags", "spoiler_scope"
+            "source_ids", "people", "places", "emotional_tags",
+            "spoiler_scope", "coverage_tags",
         ):
             data[key] = list(data[key])
         return data
@@ -92,7 +96,8 @@ class LifeMemory:
     def from_dict(cls, data: dict) -> "LifeMemory":
         values = dict(data)
         for key in (
-            "source_ids", "people", "places", "emotional_tags", "spoiler_scope"
+            "source_ids", "people", "places", "emotional_tags",
+            "spoiler_scope", "coverage_tags",
         ):
             values[key] = tuple(values.get(key, ()))
         return cls(**values)

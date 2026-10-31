@@ -55,6 +55,17 @@ class LifeBuilder:
             raise ValueError("a stage cannot be completed without memory records")
         if any(memory.review_state == "needs_review" for memory in memories):
             raise ValueError("all memory records in this stage must be reviewed")
+
+        required_tags = set(stage.get("required_coverage_tags", []))
+        covered_tags = {
+            tag for memory in memories for tag in memory.coverage_tags
+        }
+        missing_tags = sorted(required_tags - covered_tags)
+        if missing_tags:
+            raise ValueError(
+                "stage coverage is incomplete; missing: " + ", ".join(missing_tags)
+            )
+
         missing_dependencies = []
         for dependency in stage.get("depends_on", []):
             row = self.store.connection.execute(
@@ -79,14 +90,16 @@ class LifeBuilder:
                 "SELECT status FROM life_stages WHERE stage_id = ?",
                 (stage["stage_id"],),
             ).fetchone()
-            total = len(self.store.memories(stage_id=stage["stage_id"]))
-            reviewed = self.store.verified_count(stage["stage_id"])
+            memories = self.store.memories(stage_id=stage["stage_id"])
+            covered = {tag for memory in memories for tag in memory.coverage_tags}
+            required = set(stage.get("required_coverage_tags", []))
             result.append({
                 "stage_id": stage["stage_id"],
                 "title": stage["title"],
                 "status": row["status"] if row else "collecting",
-                "memory_count": total,
-                "reviewed_count": reviewed,
+                "memory_count": len(memories),
+                "reviewed_count": self.store.verified_count(stage["stage_id"]),
+                "missing_coverage": sorted(required - covered),
                 "awakening_stage": bool(stage.get("is_awakening_stage", False)),
             })
         return result
@@ -112,6 +125,11 @@ class LifeBuilder:
             raise RuntimeError(
                 "Awakening is locked: Hu Tao's pre-awakening life is not complete."
             )
+        current = self.store.connection.execute(
+            "SELECT value FROM life_state WHERE key='state'"
+        ).fetchone()
+        if current is not None and current["value"] == "awakened":
+            raise RuntimeError("Hu Tao has already awakened.")
         awakening = next(
             (stage for stage in self.stages if stage.get("is_awakening_stage", False)),
             None,
