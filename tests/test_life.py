@@ -82,7 +82,8 @@ class LifeMemoryTests(unittest.TestCase):
                     progress["07_world_history_and_archon_events"]["missing_coverage"],
                     [
                         "ancient_history", "archon_quests", "cosmology",
-                        "interludes", "unresolved_mysteries", "world_quests",
+                        "interludes", "unresolved_mysteries",
+                        "version_provenance", "world_quests",
                     ],
                 )
                 with self.assertRaises(RuntimeError):
