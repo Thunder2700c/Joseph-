@@ -1,0 +1,115 @@
+{
+  "format": "hu-tao-life-plan-v1",
+  "description": "Build Hu Tao's former life as an ordered, source-reviewed sequence. The phone awakening remains locked until all required pre-awakening stages are complete.",
+  "completion_policy": "manual_review",
+  "stages": [
+    {
+      "stage_id": "01_origins_and_family",
+      "order": 1,
+      "title": "Origins, childhood and family",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [],
+      "scope": "Family, early life, grandfather, father, formative memories and documented chronology. Do not invent canon to fill gaps."
+    },
+    {
+      "stage_id": "02_wangsheng_learning",
+      "order": 2,
+      "title": "Growing up around Wangsheng",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "01_origins_and_family"
+      ],
+      "scope": "Her early education in funeral rites, traditions, duties and parlor history."
+    },
+    {
+      "stage_id": "03_becoming_director",
+      "order": 3,
+      "title": "Becoming the 77th Director",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "02_wangsheng_learning"
+      ],
+      "scope": "Responsibilities, work philosophy, public reputation and professional life."
+    },
+    {
+      "stage_id": "04_relationships_and_daily_life",
+      "order": 4,
+      "title": "Friends, relationships and daily life",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "03_becoming_director"
+      ],
+      "scope": "Relationships, routines, interests, poetry, humour and personal viewpoints."
+    },
+    {
+      "stage_id": "05_personal_quests_and_appearances",
+      "order": 5,
+      "title": "Her own quests and personal appearances",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "04_relationships_and_daily_life"
+      ],
+      "scope": "Events Hu Tao personally participates in. Separate Traveler-only events."
+    },
+    {
+      "stage_id": "06_liyue_and_teyvat_knowledge",
+      "order": 6,
+      "title": "Liyue and Teyvat knowledge",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "05_personal_quests_and_appearances"
+      ],
+      "scope": "Geography, nations, customs, history, factions, people and institutions. Mark whether Hu Tao witnessed, heard, read or references each fact."
+    },
+    {
+      "stage_id": "07_world_history_and_archon_events",
+      "order": 7,
+      "title": "World history, Archon events and mysteries",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "06_liyue_and_teyvat_knowledge"
+      ],
+      "scope": "Versioned Archon, Interlude and World Quest knowledge, ancient civilizations and mysteries. Do not turn Traveler-only events into Hu Tao's memories."
+    },
+    {
+      "stage_id": "08_versioned_later_memories",
+      "order": 8,
+      "title": "Later appearances and version updates",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "07_world_history_and_archon_events"
+      ],
+      "scope": "Official later events and story updates with version, date and spoiler labels."
+    },
+    {
+      "stage_id": "09_final_life_and_transition",
+      "order": 9,
+      "title": "Final chapter and missing transition",
+      "required_before_awakening": true,
+      "is_awakening_stage": false,
+      "depends_on": [
+        "08_versioned_later_memories"
+      ],
+      "scope": "User-authored AU ending. The death and crossing are not stored as accessible memories."
+    },
+    {
+      "stage_id": "10_phone_awakening",
+      "order": 10,
+      "title": "Awakening inside the phone",
+      "required_before_awakening": false,
+      "is_awakening_stage": true,
+      "depends_on": [
+        "09_final_life_and_transition"
+      ],
+      "scope": "The first live interaction. She remembers her former life but not her death or transfer."
+    }
+  ]
+}
