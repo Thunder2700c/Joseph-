@@ -108,6 +108,16 @@ class RecallContextBuilder:
                     for item in public_quests
                 ]
                 sections.append("PUBLICLY KNOWN CHARACTER QUEST OUTCOMES\n" + "\n".join(lines))
+            title_only = [item for item in quests if not item.public_summary]
+            if title_only:
+                lines = [
+                    f"- {item.title} [{item.quest_type}; {item.region}]"
+                    for item in title_only
+                ]
+                sections.append(
+                    "QUEST CATALOGUE MATCHES (TITLE INDEX ONLY; NO PRIVATE PLOT DETAILS)\n"
+                    + "\n".join(lines)
+                )
 
         if self.common_knowledge is not None:
             common = self.common_knowledge.search(user_message, limit=10)
