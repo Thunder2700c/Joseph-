@@ -207,6 +207,13 @@ class TeyvatChronicleStore:
     ) -> list[dict]:
         if limit<1:
             raise ValueError("limit must be positive")
+        if region is None:
+            normalized=query.casefold()
+            regions=("the chasm (liyue)","liyue sea","mondstadt","liyue","inazuma",
+                     "sumeru","fontaine","natlan","nod-krai","snezhnaya")
+            region=next((r for r in regions if r in normalized),None)
+            if region:
+                query=""
         sql="SELECT payload FROM story_beats WHERE 1=1"
         args:list[object]=[]
         terms=_search_terms(query)
@@ -214,8 +221,8 @@ class TeyvatChronicleStore:
             sql+=" AND ("+" OR ".join(["payload LIKE ?"]*len(terms))+")"
             args.extend(f"%{term}%" for term in terms)
         if region:
-            sql+=" AND region=?"
-            args.append(region)
+            sql+=" AND lower(region)=?"
+            args.append(region.casefold())
         if arc_id:
             sql+=" AND arc_id=?"
             args.append(arc_id)
@@ -231,17 +238,31 @@ class TeyvatChronicleStore:
         return [json.loads(row["payload"]) for row in rows]
 
     def known_news(self,query: str="",limit: int=30) -> list[dict]:
-        terms=_search_terms(query)
         sql="""
             SELECT b.payload AS beat_payload,n.payload AS report_payload
             FROM news_transmissions n JOIN story_beats b ON b.beat_id=n.beat_id
             WHERE 1=1
         """
         args:list[object]=[]
-        if terms:
-            sql+=" AND ("+" OR ".join(["(b.payload LIKE ? OR n.payload LIKE ?)"]*len(terms))+")"
-            for term in terms:
-                args.extend([f"%{term}%",f"%{term}%"])
+        known_regions = (
+            "the chasm (liyue)", "liyue sea", "mondstadt", "liyue", "inazuma",
+            "sumeru", "fontaine", "natlan", "nod-krai", "snezhnaya",
+        )
+        normalized = query.casefold()
+        mentioned_region = next(
+            (region for region in known_regions if region in normalized), None
+        )
+        if mentioned_region:
+            sql += " AND lower(b.region)=?"
+            args.append(mentioned_region)
+        else:
+            terms=_search_terms(query)
+            if terms:
+                sql+=" AND ("+" OR ".join(
+                    ["(b.payload LIKE ? OR n.payload LIKE ?)"]*len(terms)
+                )+")"
+                for term in terms:
+                    args.extend([f"%{term}%",f"%{term}%"])
         sql+=" ORDER BY n.awareness_sequence,b.arc_id,b.beat_order LIMIT ?"
         args.append(limit)
         return [

@@ -56,6 +56,11 @@ def ingest(
         for row in sources:
             store.add_source(KnowledgeSource(**row))
         for row in facts:
+            # Accept the earlier misspelling in saved datasets for backward compatibility.
+            if "tevyat_application" in row and "teyvat_application" not in row:
+                row["teyvat_application"] = row.pop("tevyat_application")
+            else:
+                row.pop("tevyat_application", None)
             for key in ("source_ids", "tags", "related_terms"):
                 row[key] = tuple(row.get(key, ()))
             store.add_fact(KnowledgeFact(**row))
