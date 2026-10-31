@@ -2,7 +2,15 @@
 
 **Joseph** is the internal engineering codename for an offline-first companion whose user-facing character is **Hu Tao** in a staged reincarnation story. The goal is a locally running companion with a rich, source-aware Teyvat history, one continuous personal conversation, durable recall, and user-taught knowledge about our world.
 
-This is a from-scratch model research project. It does not contain pretrained model weights or a finished Android application.
+This is a from-scratch Hu Tao character-model research project. It does not contain a completed trained Hu Tao checkpoint or a finished Android application.
+
+## Project continuation and development order
+
+Read [CONTINUATION_CONTEXT.md](CONTINUATION_CONTEXT.md) first when resuming this project in a new conversation. It is the central handoff document for naming, character identity, current dataset state, constraints and non-negotiable development order.
+
+The user-approved sequence is: **complete Hu Tao's former-life memories → train and evaluate the standalone Hu Tao character model → only then build the Android app.** See [MODEL_TRAINING_PLAN.md](MODEL_TRAINING_PLAN.md). The current Transformer is a random-initialized research prototype, not a finished character model.
+
+Joseph is the repository/engineering codename. Hu Tao is the character. In-character, she speaks as Hu Tao and does not introduce herself as an AI assistant. Technically, the implementation remains a neural language model; the project target is a purpose-trained Hu Tao character model, not a generic assistant relying on a roleplay prompt.
 
 ## The central idea: her life happens first
 
@@ -57,7 +65,7 @@ The 1 GB limit is a **maximum neural-weight/checkpoint budget**, not a 1 GB cont
 - The local SQLite transcript and knowledge databases can grow independently of the model weights, subject to phone storage.
 - On each reply, retrieval selects useful old messages and facts rather than placing an entire lifetime of conversation into the active prompt.
 
-The model is not yet capable of a convincing conversation. A small random model cannot become Hu Tao just by loading a few memories. It still needs broad language training, character-behaviour training, evaluation and an Android inference runtime.
+The model is not yet capable of a convincing conversation. A small random model cannot become Hu Tao just by loading a few memories or a large roleplay prompt. It still needs broad language training, direct Hu Tao character training, evaluation and a reproducible standalone inference harness. Android work is deferred until the model passes its success gates.
 
 ## Model learning versus stored knowledge
 
@@ -88,7 +96,9 @@ We can build detailed, original, scene-by-scene story summaries and fact records
 - `datasets/teyvat/` — source-backed world facts, story beats and news reports
 - `datasets/world_user/` — user-taught facts schema and guidance
 - `training/` — model training and explicitly approved world-fact export
-- `android/` — single-thread UI and Android runtime planning
+- `android/` — deferred Android runtime and backup requirements
+- `CONTINUATION_CONTEXT.md` — authoritative handoff document for future chats
+- `MODEL_TRAINING_PLAN.md` — model-first training and evaluation plan
 
 ## Expanded knowledge checkpoint (2026-10-31)
 
