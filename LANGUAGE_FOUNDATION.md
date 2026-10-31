@@ -60,6 +60,18 @@ Run an experimental from-scratch baseline with validation:
 
 Token caches are generated automatically under artifacts/base_language/token_cache by default. They use disk-backed int32 files so the full corpus need not be copied into RAM/VRAM. The sample command is a pilot, not the final compute recipe. Do not run a long job on a phone or 4 GB Chromebook.
 
+## Hosted tokenizer build
+
+The repository now contains `.github/workflows/build-base-tokenizer.yml`. It runs on matching pushes to `main` and can also be started from the GitHub Actions page with **Run workflow**. The job:
+
+- streams the pinned Cosmopedia v2 revision `3ba9d60`;
+- caps acquisition at 200,000,000 characters and 100,000 samples;
+- fits the 8,192-entry ByteLevel BPE tokenizer on `train.txt` only;
+- verifies the tokenizer manifest hashes, all reserved token IDs, and Unicode encode/decode round trips;
+- uploads the tokenizer, corpus splits, manifests and licence notes as the `joseph-base-tokenizer-cosmopedia-v2` Actions artifact for 30 days.
+
+The workflow definition is committed, but do not treat the tokenizer as built until the hosted job reports success and the artifact is available. This step only acquires text and fits the tokenizer; it does not train any neural weights.
+
 ## Conversation-data follow-up
 
 Cosmopedia v2 supplies educational prose and stories, not authentic conversational turn structure. A candidate supplementary source is OpenAssistant OASST1: its dataset card declares Apache-2.0, provides 84,437 training and 4,401 validation messages in its ready export, and preserves parent-linked conversation trees. It also contains multilingual and synthetic/model-generated rows, so a later adapter must preserve train/validation separation, reconstruct coherent trees, filter to the selected language and reviewed human-authored records, and keep it as a small dialogue supplement rather than allowing generic assistant responses to define Hu Tao. It has not been downloaded or added to training yet.
