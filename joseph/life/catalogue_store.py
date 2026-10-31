@@ -95,6 +95,26 @@ class QuestCatalogueStore:
             raise ValueError("limit must be positive")
         sql = "SELECT payload FROM quest_catalogue WHERE 1=1"
         args: list[object] = []
+        if query.strip():
+            # Prefer an exact title phrase before the broader token search.
+            pattern = f"%{query.strip()}%"
+            exact_sql = "SELECT payload FROM quest_catalogue WHERE title LIKE ?"
+            exact_args: list[object] = [pattern]
+            if region:
+                exact_sql += " AND region=?"
+                exact_args.append(region)
+            if quest_type:
+                exact_sql += " AND quest_type=?"
+                exact_args.append(quest_type)
+            exact_sql += " ORDER BY region, quest_type, title LIMIT ?"
+            exact_args.append(limit)
+            exact_rows = self.connection.execute(exact_sql, exact_args).fetchall()
+            if exact_rows:
+                return [
+                    QuestCatalogueEntry.from_dict(json.loads(row["payload"]))
+                    for row in exact_rows
+                ]
+
         terms = _terms(query)
         if terms:
             sql += " AND (" + " OR ".join(
