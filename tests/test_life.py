@@ -72,7 +72,7 @@ class LifeMemoryTests(unittest.TestCase):
             )
             with LifeMemoryStore(db) as store:
                 builder = LifeBuilder(store, root / "character/life_stages.json")
-                self.assertEqual(len(store.memories()), 85)
+                self.assertEqual(len(store.memories()), 93)
                 self.assertFalse(builder.ready_to_awaken())
                 progress = {row["stage_id"]: row for row in builder.progress()}
                 self.assertEqual(progress["01_origins_and_family"]["memory_count"], 5)
