@@ -9,6 +9,7 @@ This repository starts with a deliberately small, inspectable foundation. It doe
 - **From-scratch model:** custom byte-level BPE tokenizer and a decoder-only Transformer initialized from random weights. No pretrained weights are downloaded.
 - **Local-first data:** memories and structured knowledge live in SQLite/JSON files that can be backed up independently of model weights.
 - **Evidence-aware knowledge:** JoJo facts retain source IDs, continuity (manga/anime), confidence, and verification status.
+- **Distinct identity:** Joseph's original identity is stable; temporary roleplay is an overlay and cannot replace that identity. Explicit feedback can update stored preferences and evolving traits.
 - **Small-model budget:** the default reference configuration is about 4.94 million parameters (roughly 19 MiB of raw FP32 weights). Checkpoints are rejected if they exceed the configured 1 GB limit.
 - **Android is the target device:** training experiments can happen elsewhere, but the eventual companion must run locally on Android. The current Python/PyTorch implementation is a reference/training path, not yet an Android app.
 
@@ -16,11 +17,12 @@ This repository starts with a deliberately small, inspectable foundation. It doe
 
 A randomly initialized 5M-parameter model trained only on a small JoJo dataset will not become a capable general conversational model. It needs a large, diverse, legally usable language corpus to learn language, followed by focused data for behaviour and domain knowledge. The phone is better suited to inference, retrieval, and memory than large-scale pretraining.
 
-Joseph therefore separates three things:
+Joseph therefore separates four things:
 
 1. **Language-model training** changes neural weights.
 2. **Knowledge ingestion** stores sourced facts that can be searched and updated without retraining.
 3. **Personal memory** stores user-approved preferences, project context, and conversation memories separately.
+4. **Persona adaptation** stores explicit feedback and evolving traits. It does not silently change neural weights.
 
 These systems will later be connected by a response pipeline. A retrieved fact is not automatically a trained model parameter.
 
@@ -29,8 +31,9 @@ These systems will later be connected by a response pipeline. A retrieved fact i
 - [x] Project skeleton and configuration
 - [x] Byte-level BPE tokenizer with save/load
 - [x] Small decoder-only Transformer reference model
-- [x] Provenance-aware JoJo knowledge schema and SQLite store
+- [x] Provenance-aware JoJo knowledge schema, JSONL ingestion, and SQLite store
 - [x] Separate local memory store
+- [x] Original Joseph persona with a separate temporary roleplay overlay
 - [x] Training and checkpoint-size guard
 - [x] Starter metadata for Parts 1–9 from the official JoJo portal
 - [ ] General-language training corpus and data-license audit
@@ -46,6 +49,10 @@ Python 3.11+ is recommended.
 Install the optional training dependency:
 
     python -m pip install -e ".[train,test]"
+
+Import the official JoJo catalogue metadata into a local SQLite database:
+
+    python -m joseph.knowledge.ingest --db local/jojo_knowledge.sqlite
 
 Train a tokenizer on a plain-text corpus that you have permission to use:
 
@@ -66,7 +73,8 @@ Run tests:
 - joseph/tokenizer.py — byte-level BPE tokenizer
 - joseph/model.py — decoder-only Transformer reference implementation
 - joseph/config.py — model dimensions and parameter/weight estimates
-- joseph/knowledge/ — sourced facts and continuity-aware retrieval
+- joseph/persona.py — original identity, evolving preferences, temporary roleplay overlay
+- joseph/knowledge/ — sourced facts, JSONL ingestion, and continuity-aware retrieval
 - joseph/memory/ — separate SQLite-based personal memory
 - training/ — tokenizer training, language-model training, checkpoints
 - datasets/jojo/ — small factual metadata starter, not copied story content
@@ -75,6 +83,8 @@ Run tests:
 ## Important limitations
 
 The current training loop is a prototype for small experiments. It loads the supplied text corpus into memory and is not a large-scale distributed trainer. The model has no pretrained linguistic knowledge, no chat tuning, and no Android inference package yet. Do not treat its generated output as reliable facts. Use the knowledge store and sources for factual answers until a grounded response layer exists.
+
+The persona module builds context from a small profile and explicit feedback. It does not yet control a working chat model because the conversation/inference loop has not been implemented.
 
 ## JoJo source policy
 
