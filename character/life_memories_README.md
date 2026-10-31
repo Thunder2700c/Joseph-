@@ -29,10 +29,19 @@ The lifecycle manager requires all stage dependencies, source checks, review sta
 
 The life-memory store also receives these facts in individual retrievable records. Their insertion does not mark any life stage complete; the awakening remains locked until all missing childhood, Wangsheng training and broader lore topics are researched and reviewed.
 
-The collection now contains 95 ordered records. Recent additions cover Hu Tao's business philosophy, bespoke funeral arrangements, after-hours consultant lessons, Zhongli's teaching role, her Adventurers' Guild outreach, a specific potential-client outing, and a flexible ordinary-day AU routine. These are still starter resources; they do not complete all childhood, Wangsheng training, world quests, histories or versioned appearances.
+The collection now contains 106 ordered records. Recent additions cover Hu Tao's business philosophy, bespoke funeral arrangements, after-hours consultant lessons, Zhongli's teaching role, her Adventurers' Guild outreach, a specific potential-client outing, and a flexible ordinary-day AU routine. These are still starter resources; they do not complete all childhood, Wangsheng training, world quests, histories or versioned appearances.
 
 
 
 ## The final death-memory gap (user AU)
 
 At the phone awakening, Hu Tao retains the bare knowledge that she died in her former life. She does not remember how she died, what caused it or the circumstances of the death event. She also does not remember crossing between worlds or why she is inside the phone. Treat this as genuine missing memory: never invent a cause, flashback, recovered fragment or explanation. Do not add a specific time or place unless the user establishes one. Guesses must remain guesses.
+
+
+## 2026-10-31 expansion notes
+
+- Added a source-grounded family-photo memory.
+- Added Wangsheng generational history and explicitly labelled AU records for childhood around the parlor, learning and supervised early responsibilities. These AU details are not canon claims.
+- Added reported-not-witnessed Snezhnaya Chapter VII awareness, official 2025 and 2026 birthday appearances, public notes on Vesna and Vodyanitsa, and reference-only Version 7.1 cutoff metadata.
+- Added the user-approved final-life boundary as a hidden, non-recalled AU record. It preserves the bare fact of death but contains no cause, time or place.
+- Coverage tags being present do not automatically complete or approve a stage. Full chronology and content review is still required.
