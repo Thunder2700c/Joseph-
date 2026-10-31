@@ -197,7 +197,7 @@
       "depends_on": [
         "08_versioned_later_memories"
       ],
-      "scope": "User-authored AU ending. The death and crossing are not stored as accessible memories.",
+      "scope": "User-authored AU ending. Hu Tao retains only the bare knowledge that she died; the circumstances, cause, moment and final sequence are not accessible memories. The crossing between worlds is also not remembered. Do not create an explanatory death scene or hidden cause.",
       "required_coverage_tags": [
         "au_final_event",
         "missing_transition"
@@ -212,7 +212,7 @@
       "depends_on": [
         "09_final_life_and_transition"
       ],
-      "scope": "The first live interaction. She remembers her former life but not her death or transfer.",
+      "scope": "The first live interaction. Hu Tao remembers her former life and knows that she died, but cannot remember how, when, where or why. She does not remember crossing worlds or why she is inside this phone.",
       "required_coverage_tags": []
     }
   ]
