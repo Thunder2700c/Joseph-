@@ -25,9 +25,10 @@ The model must not be a generic assistant model made to imitate Hu Tao by placin
 
 The user has explicitly selected this order. Do not reverse it or start app development early:
 
-1. **Complete Hu Tao's former-life memories and knowledge.** Research, add, source and review all required stages before serious neural training begins.
-2. **Build, train and evaluate the Hu Tao model.** It must become convincingly usable as Hu Tao in a standalone test harness. A falling training loss or a successful checkpoint save is not model success.
-3. **Only after the model passes its success gates, begin the Android application.** The app will package/run the trained model and provide local memory, conversation UI and backup/restore.
+1. **Build the general language foundation in parallel with former-life research.** Select permitted language data, prepare a tokenizer and run carefully scoped base-language experiments. This does not require Hu Tao's private biography to be complete.
+2. **Complete and manually review Hu Tao's former-life memories and public Teyvat knowledge (stages 1–9).** Hu Tao-specific dialogue/identity training must not begin until this gate passes. Her knowledge is limited to witnessed events and what ordinary people could plausibly hear, read or discuss; Traveler-only secrets remain excluded.
+3. **Directly train and evaluate the Hu Tao model.** It must become convincingly usable as Hu Tao in a standalone test harness. A falling training loss or a successful checkpoint save is not model success.
+4. **Only after the model passes its success gates, begin the Android application.**
 
 The Android app is intentionally deferred. Do not start screens, navigation, Android inference integration, app packaging or release work while the former-life dataset and standalone model are unfinished. Model experiments, corpus tools, evaluations and training infrastructure are allowed before that point.
 
@@ -130,23 +131,15 @@ These are useful foundations, not a complete life or lore corpus.
 
 ### Current code status
 
-The repository contains a prototype from-scratch decoder-only Transformer, byte-level BPE tokenizer, corpus builder, training loop and checkpoint utilities.
+The repository contains a prototype from-scratch decoder-only Transformer, Rust-backed ByteLevel BPE tokenizer, streamed base-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities.
 
-Current default configuration in `joseph/config.py`:
-- vocabulary size: 512;
-- model width: 256;
-- layers: 6;
-- attention heads: 8;
-- context length: 256 tokens;
-- weight ceiling: 1 GB.
-
-The prototype is approximately 4.94 million parameters. It starts from random initialization. **There is no completed or capable trained Hu Tao checkpoint yet.** The current training loop is an experimental foundation; it is not proof of language competence, conversational quality or character identity.
+Current default configuration in `joseph/config.py` remains a small baseline: vocabulary size 512, model width 256, 6 layers, 8 attention heads, 256-token context and a 1 GB weight ceiling. The default is approximately 4.94 million parameters and starts from random initialization. It is only a pipeline baseline, not a plausible finished conversational model. **There is no trained base model or capable Hu Tao checkpoint yet.**
 
 ### Required training philosophy
 
 The model should first learn usable language ability and then receive direct character-specific training. It must not be a generic assistant that only sounds like Hu Tao when given a large prompt.
 
-Training examples should use Hu Tao as the speaking identity. The intended conversation serialization is user input followed by Hu Tao output, e.g. `<|user|>` and `<|hutao|>`, rather than training her as the generic `<|assistant|>` speaker. The present byte-BPE tokenizer only reserves pad/BOS/EOS/UNK IDs; explicit speaker tokens and a robust conversation format are a future pipeline task, not already implemented.
+Training examples should use Hu Tao as the speaking identity. The intended conversation serialization is user input followed by Hu Tao output, e.g. `<|user|>` and `<|hutao|>`, rather than training her as the generic `<|assistant|>` speaker. The current tokenizer now reserves ten fixed IDs: pad/BOS/EOS/UNK, system, user, Hu Tao, memory, report and end-of-turn. The Hu Tao speaker token is dedicated (`<|hutao|>`). The current base-language corpus tooling uses disk-backed token caches; the full character conversation serializer and inference decoder still require later integration.
 
 The character training should teach:
 - Hu Tao's first-person identity, voice, humour, poetry and conversational rhythm;
@@ -198,8 +191,8 @@ When authorized by the roadmap, the Android app should provide offline inference
 1. Read this file first.
 2. Check the latest commit on `main` and verify the current files, because this handoff summary is a snapshot.
 3. Continue the unfinished former-life work. Stage 1 remains shallow despite all minimum tags; Stage 2's new AU childhood details need review; stages 3–7 need depth audits; stages 8–9 have only starter coverage.
-4. Do not begin serious neural training until stages 1–9 have sufficient researched content and explicit review. The 106-record expansion does not complete this gate.
-5. Once life data is complete, work through `MODEL_TRAINING_PLAN.md`, not Android UI.
+4. Continue the general language foundation and controlled base-language experiments in parallel with life-data research. Do not begin Hu Tao-specific identity/dialogue training until stages 1–9 have sufficient researched content and explicit review; the 106-record expansion does not complete this gate.
+5. Inspect `LANGUAGE_FOUNDATION.md`, `MODEL_TRAINING_PLAN.md` and `character/knowledge_policy.md` for the current corpus, tokenizer, and point-of-view rules.
 6. Begin Android app development only after the standalone Hu Tao model demonstrably passes the success gates above.
 
 **Final naming reminder: Joseph = repository codename. Hu Tao = the character.**

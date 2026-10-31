@@ -19,9 +19,12 @@ class ByteBPETokenizer:
 
     def __init__(self, backend: Tokenizer):
         self._backend = backend
-        missing = [token for token in SPECIAL_TOKENS if backend.token_to_id(token) is None]
-        if missing:
-            raise ValueError(f"tokenizer is missing required special tokens: {missing}")
+        for expected_id, token in enumerate(SPECIAL_TOKENS):
+            actual_id = backend.token_to_id(token)
+            if actual_id != expected_id:
+                raise ValueError(
+                    f"special-token ID drift: {token} expected {expected_id}, got {actual_id}"
+                )
 
     @property
     def vocab_size(self) -> int:
@@ -60,15 +63,7 @@ class ByteBPETokenizer:
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         )
         backend.train_from_iterator(texts, trainer=trainer)
-
-        result = cls(backend)
-        for expected_id, token in enumerate(SPECIAL_TOKENS):
-            actual_id = result.special_token_id(token)
-            if actual_id != expected_id:
-                raise RuntimeError(
-                    f"special-token ID drift: {token} expected {expected_id}, got {actual_id}"
-                )
-        return result
+        return cls(backend)
 
     def encode(
         self,

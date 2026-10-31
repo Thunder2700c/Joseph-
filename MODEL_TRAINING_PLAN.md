@@ -10,33 +10,24 @@ In ordinary in-character conversation, the speaker is Hu Tao. Conversation data 
 
 ## Non-negotiable sequence
 
-1. Finish and manually review the full former-life dataset (stages 1–9).
-2. Audit and curate the language, dialogue, character, Teyvat and common-world training corpora.
-3. Build a stable tokenizer and train the base language model from random initialization.
-4. Directly train the model on Hu Tao's first-person character dialogue and multi-turn conversational behaviour.
-5. Evaluate against a held-out test suite; diagnose failures and iterate.
-6. Freeze a reproducible model checkpoint and standalone inference/test harness.
-7. Only after the model passes acceptance gates, begin the Android app.
+1. Build the general language foundation in parallel with former-life research: curate permitted base text, train the tokenizer and run controlled base-language experiments from random initialization.
+2. Finish and manually review Hu Tao's former-life dataset and public Teyvat knowledge (stages 1–9). Her knowledge includes what she witnesses and what ordinary people can plausibly hear, read or discuss; Traveler-only secrets and private conversations are excluded.
+3. Only after the life-memory review gate passes, create and directly train on Hu Tao's first-person character dialogue and multi-turn conversational behaviour.
+4. Evaluate against held-out language and character test suites; diagnose failures and iterate.
+5. Freeze a reproducible checkpoint, tokenizer, corpus manifest and standalone inference/test harness.
+6. Only after the model passes acceptance gates, begin the Android app.
 
 Do not switch to Android development during steps 1–6.
 
 ## Current model prototype — not a finished model
 
-The current default `ModelConfig` is:
-- 512 vocabulary entries;
-- 256-dimensional hidden state;
-- 6 Transformer layers;
-- 8 attention heads;
-- 256-token context;
-- 1 GB maximum checkpoint/weight budget.
-
-The configuration is approximately 4.94M parameters. The tokenizer is byte-level BPE and currently reserves only pad/BOS/EOS/UNK special-token IDs. The training script creates a fresh model from random initialization and samples next-token batches from a text corpus. The corpus builder supports explicitly selected text and JSONL sources.
+The current default `ModelConfig` remains a deliberately small baseline: 512 vocabulary entries, 256-dimensional hidden state, 6 Transformer layers, 8 attention heads, 256-token context and a 1 GB maximum checkpoint/weight budget. It is approximately 4.94M parameters. The tokenizer now uses Rust-backed ByteLevel BPE with ten reserved control IDs, including `<|user|>` and `<|hutao|>`. A capped Cosmopedia v2 acquisition tool and disk-backed int32 token-cache pipeline have been added. These are experimental foundations; no actual base tokenizer fit or model run has yet been performed.
 
 These are foundations for experiments only. A model this small and randomly initialized is not yet capable of the intended conversation. Loss reduction alone is not enough.
 
 ## Phase A — finish the source and memory foundation
 
-Before the serious model run:
+Before Hu Tao-specific identity/dialogue training:
 - Complete and manually review stages 1–9 in `character/life_stages.json`. The 2026-10-31 dataset now has 106 starter memories, but stages 1–9 are not yet substantively complete.
 - Review every memory record for source, chronology, perspective, AU/canon label, and recallability.
 - Expand side stories and world knowledge beyond title-level catalogues where relevant.
@@ -67,7 +58,7 @@ Requirements:
 
 ## Phase C — tokenizer and conversation format
 
-The current byte-BPE tokenizer is a prototype. Before the main run:
+The tokenizer pipeline now uses Hugging Face Tokenizers ByteLevel BPE. Before a reproducible base training run:
 - Fit it only on approved training text, never evaluation text.
 - Test Unicode, punctuation, emoji, multilingual names, Liyue/Teyvat proper nouns and exact encode/decode behaviour.
 - Reserve stable control tokens for message boundaries and speakers.
@@ -75,13 +66,13 @@ The current byte-BPE tokenizer is a prototype. Before the main run:
 - Ensure the data builder, tokenizer and inference decoder all use the same token IDs and serialization.
 - Version and hash the tokenizer alongside every checkpoint.
 
-The current corpus builder writes message roles as textual markers based on JSONL role names; the current tokenizer does not yet reserve those markers as dedicated special token IDs. This must be addressed deliberately, tested and versioned before serious dialogue training.
+The tokenizer now reserves stable IDs for system, user, Hu Tao, memory, report and end-of-turn markers. The complete conversation serializer, role-aware packing, and inference stopping behaviour must still be implemented and tested before character dialogue training.
 
-## Phase D — base language training
+## Phase D — base language training (may proceed alongside Phase A)
 
-Train a small decoder-only language model from random initialization on the approved broad language corpus. The model needs enough general language ability to understand and respond to ordinary human conversation; the Hu Tao memory set alone is far too small and narrow for this.
+Train a decoder-only language model from random initialization on the approved broad language corpus. This general-language phase may proceed while Hu Tao's former-life stages are being researched and reviewed; it does not authorise Hu Tao-specific identity/dialogue training. The model needs enough general language ability to understand and respond to ordinary human conversation; the Hu Tao memory set alone is far too small and narrow for this.
 
-Measure:
+The current `training/train.py` uses disk-backed int32 token caches and samples mini-batches from the memory-mapped files, avoiding a full token-stream copy into RAM/VRAM. Measure:
 - train and validation loss/perplexity;
 - convergence and overfitting;
 - sample generations at regular checkpoints;
@@ -160,6 +151,8 @@ Once the evaluation suite passes:
 Only then is the model ready for the next project stage: Android application development.
 
 ## Compute and feasibility warning
+
+The first selected source is the Cosmopedia v2 configuration from Hugging Face SmolLM-Corpus; only its generated `text` field is used. The dataset card declares ODC-By 1.0. Its full configuration is roughly 122 GB compressed, so the acquisition script streams a capped sample and writes a source/hash manifest rather than downloading the complete corpus. This educational/story text is not a natural conversation corpus and does not teach Hu Tao's persona; separate dialogue and direct character data are still required.
 
 The user works with Android-first constraints and limited local compute. Do not assume the whole from-scratch training run can run on the phone, Chromebook or free CI. Estimate corpus size, model size, optimiser memory, sequence length, batch size, number of tokens and total compute before launching a long job. Hosted training compute may be considered only with explicit attention to limits and reproducibility; the final app must not depend on cloud inference.
 

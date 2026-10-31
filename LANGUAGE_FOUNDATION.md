@@ -8,37 +8,31 @@ Repository codename: Joseph
 
 The user confirmed that Hu Tao's Teyvat knowledge must be limited to what she personally experiences or what ordinary people could plausibly hear, read or discuss. Traveler-only secrets and private conversations are not part of her knowledge. See character/knowledge_policy.md.
 
-This resolves the perspective rule enough to begin the general language foundation. Work on broad language ability can proceed while the detailed former-life/Teyvat memory collection continues. Hu Tao-specific character training must still wait until the former-life material is substantively researched and reviewed.
-
-## Training sequence
-
-1. Prepare and audit an appropriately licensed general-language corpus.
-2. Train a byte-level BPE tokenizer with dedicated control tokens.
-3. Train a small decoder-only language model from random initialization; use a held-out validation set and record data/tokenizer hashes.
-4. Continue expanding and reviewing Hu Tao's former-life memories and public Teyvat knowledge under the point-of-view policy.
-5. Only after that material is ready, train the model directly on original Hu Tao biography, first-person dialogue and multi-turn examples.
-6. Evaluate character identity, conversational quality, factual perspective boundaries and the death-memory rule.
-7. Begin Android work only after the standalone model passes its acceptance gates.
+This resolves the perspective rule enough to begin the general language foundation. Broad language-model preparation and base-language experiments can proceed in parallel with continued former-life research. Hu Tao-specific character training remains gated on substantive review of stages 1–9.
 
 ## Selected base corpus
 
-The first source is Cosmopedia v2 from Hugging Face's SmolLM-Corpus, using only the generated text field. The dataset card declares ODC-By 1.0. Its full configuration is approximately 122 GB compressed, so the repository contains a capped streaming acquisition script rather than a copy of the dataset. The script saves train/validation files and a reproducibility manifest locally.
+The first source is Cosmopedia v2 from Hugging Face's SmolLM-Corpus, using only the generated text field. The dataset card declares ODC-By 1.0. Its full configuration is approximately 122 GB compressed, so the repository contains a capped streaming acquisition script rather than a copy of the dataset.
 
-This synthetic educational/story corpus is useful for a first language-model foundation, but it is not a complete conversational corpus. It does not teach Hu Tao's persona. Later stages need original multi-turn dialogue material and separate reviewed character/Teyvat training data.
+The script streams rows, deduplicates normalized text, generates deterministic train/validation partitions and records source revision, settings and file hashes. The generated prompt and seed_data fields are excluded. The corpus is general educational/story text, not Hu Tao dialogue or a full conversational dataset.
 
-## Repository changes in this stage
+## Implemented in the repository
 
-- The tokenizer uses the Rust-backed Hugging Face Tokenizers implementation and ByteLevel BPE.
-- Ten reserved IDs are allocated in a fixed order: pad, bos, eos, unk, system, user, hutao, memory, report and eot markers.
-- Tokenizer training writes a sidecar manifest with source hashes and the reserved-token list.
-- The corpus acquisition tool streams a capped Cosmopedia v2 sample, deduplicates it, makes a deterministic hash-based validation split and records hashes.
-- The model trainer supports a held-out validation file and reports validation loss/perplexity.
+- Rust-backed Hugging Face Tokenizers ByteLevel BPE.
+- Ten reserved tokens with fixed IDs: pad, bos, eos, unk, system, user, hutao, memory, report and end-of-turn.
+- Tokenizer training uses train.txt only and writes a sidecar SHA-256 manifest.
+- Corpus acquisition is streamed and capped; train/validation are split without document overlap.
+- Text is converted to disk-backed int32 token caches, one sample per line, adding BOS once and EOS after each sample.
+- The training loop samples batches from memory-mapped token files rather than loading the entire token stream into RAM/VRAM.
+- The trainer supports held-out validation loss and perplexity.
 
-## What has not happened
+## Current execution state
 
-No tokenizer has been fitted on Cosmopedia v2 yet, no base model has been trained, and no Hu Tao character model exists. The current chat environment has CPU-only PyTorch, no cached corpus and no working outbound network access, so it cannot honestly perform the real corpus download or a meaningful pretraining run. The code is prepared for a machine with network access and suitable training compute.
+GitHub Actions passed unit tests and Python compilation for commit a99883fd762d387a06f87d360f7ff85b25aaf3f0. This verifies the tokenizer, data-preparation helpers and existing project tests, not the actual external dataset download or a trained model.
 
-The existing roughly 4.94M-parameter Transformer remains a prototype. Its ability to save a checkpoint is not evidence of language competence. The next real training run must log its token count, model parameter count, validation metrics, runtime, peak memory, checkpoint size and generation samples.
+No tokenizer has been fitted on Cosmopedia v2 yet, no base model has been trained, and no Hu Tao character model exists. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run therefore still needs an external machine with network and suitable training compute.
+
+The current approximately 4.94M-parameter Transformer remains a small research baseline. It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
 ## Commands
 
@@ -46,11 +40,11 @@ Install dependencies:
 
     python -m pip install -e ".[data,train,test]"
 
-Acquire a pilot corpus:
+Acquire a capped corpus sample:
 
     python -m training.acquire_base_corpus --output-dir artifacts/base_language/cosmopedia-v2 --max-samples 100000 --max-characters 200000000
 
-Fit tokenizer on the training split only:
+Fit the tokenizer on the training split only:
 
     python -m training.train_tokenizer --input artifacts/base_language/cosmopedia-v2/train.txt --output artifacts/base_language/tokenizer.json --vocab-size 8192
 
@@ -58,4 +52,14 @@ Run an experimental from-scratch baseline with validation:
 
     python -m training.train --input artifacts/base_language/cosmopedia-v2/train.txt --validation artifacts/base_language/cosmopedia-v2/validation.txt --tokenizer artifacts/base_language/tokenizer.json --output artifacts/base_language/base-pilot.pt --steps 10000 --batch-size 8 --seq-len 256 --device cuda
 
-That sample command is a pipeline pilot, not the final compute recipe or model-size recommendation. Do not run a long job on a phone or 4 GB Chromebook. The final architecture and token budget must be chosen from measured training and inference constraints.
+Token caches are generated automatically under artifacts/base_language/token_cache by default. They use disk-backed int32 files so the full corpus need not be copied into RAM/VRAM. The sample command is a pilot, not the final compute recipe. Do not run a long job on a phone or 4 GB Chromebook.
+
+## Remaining steps
+
+1. Run corpus acquisition and inspect its manifest, token count and licence attribution.
+2. Fit and test the tokenizer on the actual training split, then archive its manifest.
+3. Choose model dimensions and training-token budget from measured hardware throughput; the 4.94M model is only a baseline.
+4. Run controlled base training, record loss/perplexity, throughput, peak memory, generation samples and checkpoint size.
+5. Continue expanding/reviewing Hu Tao's former-life memories and public Teyvat knowledge.
+6. Once stages 1–9 pass review, build original first-person Hu Tao dialogue data and continue training for her character.
+7. Complete held-out character evaluation before any Android implementation.
