@@ -4,7 +4,7 @@
 
 **Last handoff review:** 2026-10-31
 **Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
-**Latest language-foundation pipeline commit:** `2b5da9decfac5995044e75a516148d9cdaeec1ad` (hosted corpus/tokenizer workflow added; tokenizer artifact not yet verified)  
+**Latest tokenizer-pipeline iteration:** `1b15e74a6572de7154130adf3d167870c6541026` (10M-character pilot, optional HF_TOKEN authentication, 90-minute timeout; execution result not yet verified)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
@@ -137,6 +137,12 @@ Additional starter corpus status recorded in the repository:
 - `datasets/teyvat/release_news.jsonl`: 14 HoYoverse publisher bulletins.
 
 These are useful foundations, not a complete life or lore corpus.
+
+### Tokenizer build execution note (2026-11-01)
+
+The first GitHub Actions tokenizer attempt was cancelled after **3 hours** at its configured timeout; no tokenizer artifact was confirmed. Its logs included an unauthenticated Hugging Face Hub warning. This is a likely throughput/rate-limit concern, not proof that authentication alone will fix the run.
+
+The workflow was reduced from a 200-million-character / 100,000-sample acquisition to a **pilot** capped at 10 million characters / 5,000 samples, with a 1,000-row shuffle buffer and 90-minute timeout. The optional repository Actions secret `HF_TOKEN` is passed to the acquisition step. Never place the token in source files or logs. The pilot must finish successfully and pass tokenizer checks before calling the tokenizer trained; it is not automatically the final production vocabulary.
 
 ## 7. Model status and training direction
 
