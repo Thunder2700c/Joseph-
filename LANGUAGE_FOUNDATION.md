@@ -68,13 +68,13 @@ The workflow has therefore been reduced to a **pilot**:
 - pinned Cosmopedia v2 revision `3ba9d60`;
 - at most 5,000 samples and 10,000,000 characters;
 - shuffle buffer reduced from 10,000 to 1,000;
-- optional GitHub Actions secret `HF_TOKEN` passed to the corpus acquisition step;
+- no Hugging Face token or repository secret is required for the public dataset;
 - 90-minute job timeout;
 - 8,192-entry ByteLevel BPE fit on `train.txt` only;
 - manifest/hash, special-token and Unicode round-trip checks;
 - 30-day artifact containing the pilot train/validation splits, tokenizer and licence notes.
 
-The 10-million-character pilot is intended to prove that acquisition and tokenizer fitting complete reliably. Its tokenizer should be treated as an experiment, not frozen as the final vocabulary until corpus coverage and tokenization quality are assessed. Add a Hugging Face access token as a repository Actions secret named `HF_TOKEN` to enable authenticated Hub requests; never commit the token. The workflow commit itself does not prove that a run completed. This step only acquires text and fits the tokenizer; it does not train neural weights.
+The 10-million-character pilot is intended to prove that anonymous public-dataset acquisition and tokenizer fitting complete reliably. An unauthenticated Hub warning is informational; investigate actual 429/rate-limit responses or download errors before deciding that a token is required. Its tokenizer should be treated as an experiment, not frozen as the final vocabulary until corpus coverage and tokenization quality are assessed. The workflow commit itself does not prove that a run completed. This step only acquires text and fits the tokenizer; it does not train neural weights.
 
 ## Conversation-data follow-up
 
