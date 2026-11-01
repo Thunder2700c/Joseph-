@@ -4,7 +4,7 @@
 
 **Last handoff review:** 2026-10-31
 **Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
-**Latest full-corpus workflow commit:** `6902baa26ede8df18e3a012ecdcea8b99ec4260f` (20 disjoint 10M-character source partitions, merge/deduplicate, final tokenizer fit; Actions result still needs verification)  
+**Latest dataset pipeline commit:** `571859ca71ced340a9363818dc4b9cc6b595848f` (live acquisition status recorded; 10M pilot and 20-shard 200M pipeline running/queued)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
@@ -153,6 +153,18 @@ The merge utility `training/merge_corpus_shards.py` verifies all 20 partition in
 The workflow commit being present is not proof that GitHub Actions ran or completed. Check the repository Actions page and verify the final artifact before claiming a 200M corpus or fitted tokenizer exists. The actual merged character count may be below 200M after per-shard limits and global deduplication.
 
 The current repository is private. Standard GitHub-hosted runners on public repositories are free, while private-repository runner use draws from the account's plan allowance. Do not make the full Joseph repository public without explicit user approval: it contains personal AU character-continuity material and its commit history and Actions logs would become visible. A separate sanitized public data-worker repository is the safer option if public compute is needed. Short artifact retention is used to limit storage accrual.
+
+### Live GitHub acquisition snapshot (2026-11-01)
+
+The user changed `Thunder2700c/Joseph-` to public; GitHub metadata confirms `private: false`. Public standard GitHub-hosted runner minutes are free; artifact storage still uses the account's plan allowance. Keep intermediate artifacts at one-day retention and final artifacts at three days.
+
+- **10M pilot:** run [41293340375](https://github.com/Thunder2700c/Joseph-/actions/runs/41293340375) was `in_progress` at the corpus acquisition step. A newer run [41296346001](https://github.com/Thunder2700c/Joseph-/actions/runs/41296346001) was `pending` in the same concurrency group. Avoid starting duplicate pilot jobs.
+- **20-shard 200M acquisition:** run [41295607839](https://github.com/Thunder2700c/Joseph-/actions/runs/41295607839) has 20 matrix jobs; shard 0 succeeded, shards 1 and 2 were active, and 17 queued at the latest check.
+- Cosmopedia v2 streaming source reports 104 underlying source shards.
+- Shard 0 acquired 9,999,831 characters (2,539 train / 147 validation samples, zero within-shard duplicates, approximate token count 2,499,958) and uploaded a 3,714,469-byte artifact. It passed the provenance and cap checks despite the unauthenticated HF warning.
+- The 200M corpus is not yet complete: all remaining partitions, the merger, global deduplication and final tokenizer fit still need success. No neural-model training has started.
+
+Refresh these run links before quoting later progress. These values are point-in-time snapshots.
 
 ## 7. Model status and training direction
 
