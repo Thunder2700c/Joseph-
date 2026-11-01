@@ -110,7 +110,7 @@ def write_corpus(
             "min_characters": min_characters,
             "max_document_characters": max_document_characters,
             "validation_percent": validation_percent,
-            "split_method": "sha256(normalized_text) modulo 100",
+            "split_method": "sha256(normalized_text.casefold()) modulo 100",
             "deduplication": "sha256(normalized_text.casefold())",
         },
         "samples": {
@@ -154,10 +154,28 @@ def main() -> None:
     parser.add_argument("--validation-percent", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--shuffle-buffer", type=int, default=10_000)
+    parser.add_argument(
+        "--num-shards",
+        type=int,
+        help="Partition the streaming source into this many disjoint shards.",
+    )
+    parser.add_argument(
+        "--shard-index",
+        type=int,
+        default=0,
+        help="Zero-based source partition to acquire; requires --num-shards.",
+    )
     args = parser.parse_args()
 
     if args.shuffle_buffer < 1:
         parser.error("--shuffle-buffer must be positive")
+    if args.num_shards is None and args.shard_index != 0:
+        parser.error("--shard-index requires --num-shards")
+    if args.num_shards is not None:
+        if args.num_shards < 2:
+            parser.error("--num-shards must be at least 2")
+        if not 0 <= args.shard_index < args.num_shards:
+            parser.error("--shard-index must be in [0, num_shards)")
     try:
         from datasets import load_dataset
     except ImportError:
@@ -173,7 +191,22 @@ def main() -> None:
         streaming=True,
         revision=args.revision,
     )
-    stream = stream.shuffle(seed=args.seed, buffer_size=args.shuffle_buffer)
+    source_shard_count = getattr(stream, "num_shards", None)
+    if args.num_shards is not None:
+        if source_shard_count is None:
+            parser.error("the streaming dataset does not expose source shard metadata")
+        if args.num_shards > source_shard_count:
+            parser.error(
+                f"--num-shards={args.num_shards} exceeds the source's "
+                f"{source_shard_count} available shards"
+            )
+        # Partition the source files before shuffling. Different indexes are
+        # disjoint, deterministic subsets of the same pinned source revision.
+        stream = stream.shard(num_shards=args.num_shards, index=args.shard_index)
+    stream = stream.shuffle(
+        seed=args.seed + args.shard_index,
+        buffer_size=args.shuffle_buffer,
+    )
     manifest = write_corpus(
         stream,
         args.output_dir,
@@ -184,8 +217,18 @@ def main() -> None:
         validation_percent=args.validation_percent,
     )
     manifest["dataset_revision"] = args.revision
-    manifest["shuffle_seed"] = args.seed
+    manifest["shuffle_seed"] = args.seed + args.shard_index
     manifest["shuffle_buffer"] = args.shuffle_buffer
+    manifest["source_shards_available"] = source_shard_count
+    manifest["shard"] = (
+        {
+            "count": args.num_shards,
+            "index": args.shard_index,
+            "method": "IterableDataset.shard before per-shard shuffle",
+        }
+        if args.num_shards is not None
+        else None
+    )
     manifest_path = Path(args.output_dir) / "manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
