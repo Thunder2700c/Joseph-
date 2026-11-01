@@ -142,7 +142,7 @@ These are useful foundations, not a complete life or lore corpus.
 
 The first GitHub Actions tokenizer attempt was cancelled after **3 hours** at its configured timeout; no tokenizer artifact was confirmed. Its logs included an unauthenticated Hugging Face Hub warning. This is a likely throughput/rate-limit concern, not proof that authentication alone will fix the run.
 
-The workflow was reduced from a 200-million-character / 100,000-sample acquisition to a **pilot** capped at 10 million characters / 5,000 samples, with a 1,000-row shuffle buffer and 90-minute timeout. The optional repository Actions secret `HF_TOKEN` is passed to the acquisition step. Never place the token in source files or logs. The pilot must finish successfully and pass tokenizer checks before calling the tokenizer trained; it is not automatically the final production vocabulary.
+The workflow was reduced from a 200-million-character / 100,000-sample acquisition to a **pilot** capped at 10 million characters / 5,000 samples, with a 1,000-row shuffle buffer and 90-minute timeout. The acquisition step uses anonymous access; no Hugging Face token or repository secret is required for this public dataset. The unauthenticated warning is informational unless the logs show actual 429/rate-limit failures. The pilot must finish successfully and pass tokenizer checks before calling the tokenizer trained; it is not automatically the final production vocabulary.
 
 ## 7. Model status and training direction
 
