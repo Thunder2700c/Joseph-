@@ -1,0 +1,208 @@
+name: Build 200M Cosmopedia corpus and tokenizer
+run-name: Build 20 disjoint Cosmopedia shards and fit final tokenizer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-base-corpus.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cosmopedia-base-corpus-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  acquire-shards:
+    name: Acquire corpus shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install streaming dataset dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "datasets>=3.0,<5"
+
+      - name: Acquire deterministic disjoint source shard
+        run: |
+          python -m training.acquire_base_corpus \
+            --output-dir artifacts/cosmopedia-shard-${{ matrix.shard }} \
+            --num-shards 20 \
+            --shard-index ${{ matrix.shard }} \
+            --max-samples 5000 \
+            --max-characters 10000000 \
+            --max-document-characters 100000 \
+            --validation-percent 5 \
+            --seed 42 \
+            --shuffle-buffer 1000
+
+      - name: Verify shard identity and provenance
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("artifacts/cosmopedia-shard-${{ matrix.shard }}")
+          manifest = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
+          shard = manifest["shard"]
+          assert shard["count"] == 20, shard
+          assert shard["index"] == ${{ matrix.shard }}, shard
+          assert manifest["dataset_revision"] == "3ba9d60"
+          assert manifest["dataset_license"] == "ODC-By-1.0"
+          assert manifest["selected_field"] == "text"
+          assert manifest["excluded_fields"] == ["prompt", "seed_data"]
+          assert manifest["samples"]["train"] > 0
+          assert manifest["samples"]["validation"] > 0
+          assert manifest["samples"]["total_characters"] <= 10_000_000
+          print(json.dumps({
+              "shard": shard,
+              "available_source_shards": manifest["source_shards_available"],
+              "samples": manifest["samples"]
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload temporary shard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmopedia-shard-${{ matrix.shard }}
+          path: artifacts/cosmopedia-shard-${{ matrix.shard }}/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 1
+
+  merge-and-tokenize:
+    name: Merge corpus and fit final tokenizer
+    needs: acquire-shards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install tokenizer dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "tokenizers>=0.21,<1"
+
+      - name: Download all 20 shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cosmopedia-shard-*
+          path: artifacts/incoming
+          merge-multiple: false
+
+      - name: Globally deduplicate and merge corpus
+        run: |
+          python -m training.merge_corpus_shards \
+            --input-root artifacts/incoming \
+            --output-dir artifacts/base_language/cosmopedia-v2 \
+            --expected-shards 20 \
+            --max-characters 200000000
+
+      - name: Fit final ByteLevel BPE tokenizer on merged training split only
+        run: |
+          python -m training.train_tokenizer \
+            --input artifacts/base_language/cosmopedia-v2/train.txt \
+            --output artifacts/base_language/tokenizer.json \
+            --vocab-size 8192 \
+            --min-frequency 2
+
+      - name: Validate final corpus, tokenizer and Unicode round trips
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from joseph.tokenizer import ByteBPETokenizer, SPECIAL_TOKENS
+
+          root = Path("artifacts/base_language")
+          corpus = root / "cosmopedia-v2"
+          tokenizer_path = root / "tokenizer.json"
+          corpus_manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+          tokenizer_manifest = json.loads(
+              (root / "tokenizer.manifest.json").read_text(encoding="utf-8")
+          )
+
+          def sha256(path):
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          tokenizer = ByteBPETokenizer.load(tokenizer_path)
+          assert tokenizer.vocab_size == 8192
+          assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["tokenizer_sha256"] == sha256(tokenizer_path)
+          assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
+          assert tokenizer_manifest["special_tokens"] == list(SPECIAL_TOKENS)
+          assert len(corpus_manifest["shards"]) == 20
+          assert corpus_manifest["selection"]["source_shards_available"] >= 20
+          assert corpus_manifest["samples"]["train"] > 0
+          assert corpus_manifest["samples"]["validation"] > 0
+          assert corpus_manifest["samples"]["total_characters"] <= 200_000_000
+          assert corpus_manifest["dataset_revision"] == "3ba9d60"
+          assert corpus_manifest["dataset_license"] == "ODC-By-1.0"
+
+          samples = [
+              "Hu Tao — Wangsheng Funeral Parlor, Liyue Harbor.",
+              "Teyvat: Mondstadt, Liyue, Inazuma, Sumeru, Fontaine, Natlan, Nod-Krai, Snezhnaya.",
+              "Unicode check: 你好，世界！ Привет мир! ਪੰਜਾਬੀ 😀 🎭",
+              "Punctuation: ...?! — “quotes”; apostrophes ' and symbols # @ % &",
+          ]
+          for sample in samples:
+              assert tokenizer.decode(tokenizer.encode(sample)) == sample
+
+          print(json.dumps({
+              "vocabulary_size": tokenizer.vocab_size,
+              "tokenizer_bytes": tokenizer_path.stat().st_size,
+              "tokenizer_sha256": tokenizer_manifest["tokenizer_sha256"],
+              "source_shards": len(corpus_manifest["shards"]),
+              "samples": corpus_manifest["samples"],
+              "train_characters": corpus_manifest["files"]["train.txt"]["characters"],
+              "validation_characters": corpus_manifest["files"]["validation.txt"]["characters"],
+              "validation_data_used_for_tokenizer": False,
+              "unicode_round_trips": len(samples)
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Include attribution and licence notes
+        run: cp datasets/base_language/README.md artifacts/base_language/README.md
+
+      - name: Upload merged corpus and trained tokenizer
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-cosmopedia-v2-merged-200m-tokenizer
+          path: |
+            artifacts/base_language/README.md
+            artifacts/base_language/cosmopedia-v2/train.txt
+            artifacts/base_language/cosmopedia-v2/validation.txt
+            artifacts/base_language/cosmopedia-v2/manifest.json
+            artifacts/base_language/tokenizer.json
+            artifacts/base_language/tokenizer.manifest.json
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 3
