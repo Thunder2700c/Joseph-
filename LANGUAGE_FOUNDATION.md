@@ -48,7 +48,7 @@ Install dependencies:
 
 Acquire a capped corpus sample:
 
-    python -m training.acquire_base_corpus --output-dir artifacts/base_language/cosmopedia-v2 --max-samples 100000 --max-characters 200000000
+    python -m training.acquire_base_corpus --output-dir artifacts/base_language/cosmopedia-v2 --max-samples 5000 --max-characters 10000000 --shuffle-buffer 1000
 
 Fit the tokenizer on the training split only:
 
@@ -62,15 +62,19 @@ Token caches are generated automatically under artifacts/base_language/token_cac
 
 ## Hosted tokenizer build
 
-The repository now contains `.github/workflows/build-base-tokenizer.yml`. It runs on matching pushes to `main` and can also be started from the GitHub Actions page with **Run workflow**. The job:
+The repository contains `.github/workflows/build-base-tokenizer.yml`. Its first hosted attempt ran for 3 hours and was cancelled at the job time limit before a tokenizer artifact was produced. The run emitted an unauthenticated Hugging Face Hub warning; that warning alone does not prove the cause, but unauthenticated access can be rate-limited.
 
-- streams the pinned Cosmopedia v2 revision `3ba9d60`;
-- caps acquisition at 200,000,000 characters and 100,000 samples;
-- fits the 8,192-entry ByteLevel BPE tokenizer on `train.txt` only;
-- verifies the tokenizer manifest hashes, all reserved token IDs, and Unicode encode/decode round trips;
-- uploads the tokenizer, corpus splits, manifests and licence notes as the `joseph-base-tokenizer-cosmopedia-v2` Actions artifact for 30 days.
+The workflow has therefore been reduced to a **pilot**:
+- pinned Cosmopedia v2 revision `3ba9d60`;
+- at most 5,000 samples and 10,000,000 characters;
+- shuffle buffer reduced from 10,000 to 1,000;
+- optional GitHub Actions secret `HF_TOKEN` passed to the corpus acquisition step;
+- 90-minute job timeout;
+- 8,192-entry ByteLevel BPE fit on `train.txt` only;
+- manifest/hash, special-token and Unicode round-trip checks;
+- 30-day artifact containing the pilot train/validation splits, tokenizer and licence notes.
 
-The workflow definition is committed, but do not treat the tokenizer as built until the hosted job reports success and the artifact is available. This step only acquires text and fits the tokenizer; it does not train any neural weights.
+The 10-million-character pilot is intended to prove that acquisition and tokenizer fitting complete reliably. Its tokenizer should be treated as an experiment, not frozen as the final vocabulary until corpus coverage and tokenization quality are assessed. Add a Hugging Face access token as a repository Actions secret named `HF_TOKEN` to enable authenticated Hub requests; never commit the token. The workflow commit itself does not prove that a run completed. This step only acquires text and fits the tokenizer; it does not train neural weights.
 
 ## Conversation-data follow-up
 
