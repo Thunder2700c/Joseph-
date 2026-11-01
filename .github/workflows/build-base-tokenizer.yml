@@ -22,7 +22,7 @@ jobs:
   build-tokenizer:
     name: Acquire corpus and fit tokenizer
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -37,17 +37,19 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install "datasets>=3.0,<5" "tokenizers>=0.21,<1"
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: Acquire capped Cosmopedia v2 corpus
         run: |
           python -m training.acquire_base_corpus \
             --output-dir artifacts/base_language/cosmopedia-v2 \
-            --max-samples 100000 \
-            --max-characters 200000000 \
+            --max-samples 5000 \
+            --max-characters 10000000 \
             --max-document-characters 100000 \
             --validation-percent 5 \
             --seed 42 \
-            --shuffle-buffer 10000
+            --shuffle-buffer 1000
 
       - name: Fit ByteLevel BPE on training split only
         run: |
