@@ -4,7 +4,7 @@
 
 **Last handoff review:** 2026-10-31
 **Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
-**Latest tokenizer-pipeline commit:** `19350307ecef88d35a156a8e11cfeabc7113696c` (10M-character anonymous-access pilot, 90-minute timeout; next run must be checked before claiming completion)  
+**Latest full-corpus workflow commit:** `6902baa26ede8df18e3a012ecdcea8b99ec4260f` (20 disjoint 10M-character source partitions, merge/deduplicate, final tokenizer fit; Actions result still needs verification)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
@@ -142,11 +142,17 @@ Additional starter corpus status recorded in the repository:
 
 These are useful foundations, not a complete life or lore corpus.
 
-### Tokenizer build execution note (2026-11-01)
+### Dataset and tokenizer build execution note (2026-11-01)
 
-The first GitHub Actions tokenizer attempt was cancelled after **3 hours** at its configured timeout; no tokenizer artifact was confirmed. Its logs included an unauthenticated Hugging Face Hub warning. This is a likely throughput/rate-limit concern, not proof that authentication alone will fix the run.
+The first single-stream 200M-character run was cancelled after three hours before a tokenizer artifact was verified. A separate 10M pilot and the full sharded workflow now exist.
 
-The workflow was reduced from a 200-million-character / 100,000-sample acquisition to a **pilot** capped at 10 million characters / 5,000 samples, with a 1,000-row shuffle buffer and 90-minute timeout. The acquisition step uses anonymous access; no Hugging Face token or repository secret is required for this public dataset. The unauthenticated warning is informational unless the logs show actual 429/rate-limit failures. The next run must finish successfully and pass tokenizer checks before calling the tokenizer trained; it is not automatically the final production vocabulary.
+The acquisition script supports deterministic disjoint source partitions through Hugging Face `IterableDataset.shard(num_shards, index)`, applied before per-partition shuffling. The full workflow `.github/workflows/build-base-corpus.yml` has 20 matrix jobs; each partition is capped at 10,000,000 characters and 5,000 documents. Two jobs run concurrently; each has a 45-minute limit. Worst-case compute is 900 runner-minutes for acquisition plus up to 60 minutes for merge/tokenizer verification, before small CI overhead. Actual runtime should be measured from the first complete run.
+
+The merge utility `training/merge_corpus_shards.py` verifies all 20 partition indexes and provenance, checks file hashes, globally deduplicates normalized case-folded text, and rechecks the content-hash train/validation split to reject leakage. The final tokenizer is fitted once on the combined training split, not separately per shard. The workflow uploads intermediate shards for one day and the final corpus/tokenizer artifact for three days. Corpus artifacts are not committed to Git.
+
+The workflow commit being present is not proof that GitHub Actions ran or completed. Check the repository Actions page and verify the final artifact before claiming a 200M corpus or fitted tokenizer exists. The actual merged character count may be below 200M after per-shard limits and global deduplication.
+
+The current repository is private. Standard GitHub-hosted runners on public repositories are free, while private-repository runner use draws from the account's plan allowance. Do not make the full Joseph repository public without explicit user approval: it contains personal AU character-continuity material and its commit history and Actions logs would become visible. A separate sanitized public data-worker repository is the safer option if public compute is needed. Short artifact retention is used to limit storage accrual.
 
 ## 7. Model status and training direction
 
