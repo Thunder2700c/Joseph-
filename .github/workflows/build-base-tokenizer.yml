@@ -1,5 +1,5 @@
 name: Build base tokenizer
-run-name: Cosmopedia 10M tokenizer pilot
+run-name: Start 10M Cosmopedia corpus acquisition and tokenizer fit — ${{ github.sha }}
 
 on:
   push:
