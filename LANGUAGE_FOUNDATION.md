@@ -36,7 +36,7 @@ The script streams rows, deduplicates normalized text, generates deterministic t
 
 GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd814: 47 unit tests passed, Python modules compiled, and a tiny two-step CPU training smoke test measured train/validation loss and saved a checkpoint. This verifies the execution path and checkpoint creation, not the actual external dataset download or useful language-model quality.
 
-No tokenizer has been fitted on Cosmopedia v2 yet, no base model has been trained, and no Hu Tao character model exists. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run therefore still needs an external machine with network and suitable training compute.
+No completed Cosmopedia tokenizer artifact has been verified yet, no base model has been trained, and no Hu Tao character model exists. The repository now has a bounded 10M pilot and a 20-partition full-corpus workflow; completion must be verified from GitHub Actions artifacts. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run therefore still needs an external machine with network and suitable training compute.
 
 The current approximately 4.94M-parameter default Transformer remains a small research baseline (the 8,192-token tokenizer setting increases embedding parameters). It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The current 200-million-character corpus cap is only a pipeline pilot, roughly tens of millions of tokens, not a serious pretraining budget. For scale context, Hugging Face reports that SmolLM's 135M/360M models were trained on 600B tokens and the 1.7B model on 1T tokens; those runs also used a broader data mixture and are not a direct recipe for this project. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
@@ -60,21 +60,29 @@ Run an experimental from-scratch baseline with validation:
 
 Token caches are generated automatically under artifacts/base_language/token_cache by default. They use disk-backed int32 files so the full corpus need not be copied into RAM/VRAM. The sample command is a pilot, not the final compute recipe. Do not run a long job on a phone or 4 GB Chromebook.
 
-## Hosted tokenizer build
+## Hosted corpus and tokenizer build
 
-The repository contains `.github/workflows/build-base-tokenizer.yml`. Its first hosted attempt ran for 3 hours and was cancelled at the job time limit before a tokenizer artifact was produced. The run emitted an unauthenticated Hugging Face Hub warning; that warning alone does not prove the cause, but unauthenticated access can be rate-limited.
+The repository contains two hosted workflows:
 
-The workflow has therefore been reduced to a **pilot**:
-- pinned Cosmopedia v2 revision `3ba9d60`;
-- at most 5,000 samples and 10,000,000 characters;
-- shuffle buffer reduced from 10,000 to 1,000;
-- no Hugging Face token or repository secret is required for the public dataset;
-- 90-minute job timeout;
-- 8,192-entry ByteLevel BPE fit on `train.txt` only;
-- manifest/hash, special-token and Unicode round-trip checks;
-- 30-day artifact containing the pilot train/validation splits, tokenizer and licence notes.
+- `.github/workflows/build-base-tokenizer.yml` is the small one-stream tokenizer pilot.
+- `.github/workflows/build-base-corpus.yml` builds the full capped corpus from **20 disjoint source partitions** and fits the final tokenizer once after merging.
 
-The 10-million-character pilot is intended to prove that anonymous public-dataset acquisition and tokenizer fitting complete reliably. An unauthenticated Hub warning is informational; investigate actual 429/rate-limit responses or download errors before deciding that a token is required. Its tokenizer should be treated as an experiment, not frozen as the final vocabulary until corpus coverage and tokenization quality are assessed. The workflow commit itself does not prove that a run completed. This step only acquires text and fits the tokenizer; it does not train neural weights.
+The full workflow uses the pinned Cosmopedia v2 revision `3ba9d60`. The acquisition script now supports `--num-shards` and `--shard-index`; it partitions the Hugging Face streaming source before shuffling, so each matrix job reads a different deterministic subset of source shards. Each of the 20 jobs has a 10-million-character and 5,000-document cap. The matrix runs at most two jobs concurrently, with a 45-minute limit per shard. The theoretical upper bound is 900 Linux runner-minutes for shard jobs plus a 60-minute merge/tokenizer job; actual use should be lower.
+
+After the shard jobs finish, the merge job:
+- checks that all 20 source partition indexes exist exactly once;
+- checks matching source revision, dataset licence, split settings and per-file SHA-256 hashes;
+- globally deduplicates by normalized, case-folded text;
+- rechecks the hash-based train/validation assignment to reject leakage;
+- caps the merged corpus at 200,000,000 characters;
+- fits one 8,192-entry ByteLevel BPE tokenizer on the combined `train.txt` only;
+- verifies the tokenizer manifest, reserved IDs and Unicode encode/decode round trips.
+
+Intermediate shard artifacts are retained for one day and the merged corpus/tokenizer artifact for three days. The raw training corpus is stored as a workflow artifact, not committed to the repository and never included in the final inference bundle.
+
+The first non-sharded three-hour attempt was cancelled before producing a verified tokenizer. The smaller 10-million-character pilot and new 20-shard pipeline are intended to isolate the slow acquisition work and keep each individual job bounded. An unauthenticated Hugging Face warning is informational unless the run logs show actual rate-limit or download errors; no token is required for this public dataset.
+
+**Execution is not considered successful merely because workflow files were committed.** Confirm a completed GitHub Actions run and download the `joseph-cosmopedia-v2-merged-200m-tokenizer` artifact before claiming the full corpus or final tokenizer exists. The 20 × 10M settings are upper bounds: the final manifest reports the actual unique character and sample counts, which may be lower after global deduplication. This stage acquires text and trains the tokenizer; it does not train neural weights.
 
 ## Conversation-data follow-up
 
