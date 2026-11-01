@@ -84,6 +84,24 @@ The first non-sharded three-hour attempt was cancelled before producing a verifi
 
 **Execution is not considered successful merely because workflow files were committed.** Confirm a completed GitHub Actions run and download the `joseph-cosmopedia-v2-merged-200m-tokenizer` artifact before claiming the full corpus or final tokenizer exists. The 20 × 10M settings are upper bounds: the final manifest reports the actual unique character and sample counts, which may be lower after global deduplication. This stage acquires text and trains the tokenizer; it does not train neural weights.
 
+## Live acquisition status (2026-11-01)
+
+The user made `Thunder2700c/Joseph-` public. This was independently verified from GitHub repository metadata (`private: false`). Standard GitHub-hosted runner usage for public repositories is free; artifact storage remains subject to the GitHub plan's shared storage allowance, so intermediate shard artifacts are retained for one day and the final artifact for three days. See GitHub Actions billing documentation.
+
+The 10-million-character tokenizer pilot:
+- Run: [41293340375](https://github.com/Thunder2700c/Joseph-/actions/runs/41293340375)
+- At the latest check: `in_progress`, still at the “Acquire capped Cosmopedia v2 corpus” step.
+- A second trigger was created by commit `a2f1ea0ccb3d0ed921f599a21628a287a78bd2c0`; run [41296346001](https://github.com/Thunder2700c/Joseph-/actions/runs/41296346001) was `pending` behind the same workflow concurrency group. Do not start another duplicate pilot unless the state changes.
+
+The 20-partition 200-million-character acquisition workflow:
+- Run: [41295607839](https://github.com/Thunder2700c/Joseph-/actions/runs/41295607839)
+- At the latest check: 20 matrix jobs created; shard 0 completed successfully, shards 1 and 2 were acquiring data, and 17 shard jobs were queued.
+- The source reports 104 underlying data shards.
+- Shard 0 downloaded and validated 9,999,831 unique characters: 2,539 train samples, 147 validation samples, zero duplicates within the shard, and an approximate 2,499,958 tokens. Its uploaded artifact was 3,714,469 bytes.
+- Its logs showed the unauthenticated Hugging Face warning, but the shard still completed, passed provenance/size checks and uploaded successfully.
+
+These are live snapshots, not final results. The overall 200M workflow still needs all 20 partitions, global deduplication, merged manifest verification and final 8,192-vocabulary tokenizer fitting. No neural-model training has started. Refresh the run links before reporting updated progress.
+
 ## Conversation-data follow-up
 
 Cosmopedia v2 supplies educational prose and stories, not authentic conversational turn structure. A candidate supplementary source is OpenAssistant OASST1: its dataset card declares Apache-2.0, provides 84,437 training and 4,401 validation messages in its ready export, and preserves parent-linked conversation trees. It also contains multilingual and synthetic/model-generated rows, so a later adapter must preserve train/validation separation, reconstruct coherent trees, filter to the selected language and reviewed human-authored records, and keep it as a small dialogue supplement rather than allowing generic assistant responses to define Hu Tao. It has not been downloaded or added to training yet.
