@@ -1,4 +1,5 @@
 name: Build base tokenizer
+run-name: Cosmopedia 10M tokenizer pilot
 
 on:
   push:
