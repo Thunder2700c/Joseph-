@@ -37,10 +37,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install "datasets>=3.0,<5" "tokenizers>=0.21,<1"
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: Acquire capped Cosmopedia v2 corpus
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python -m training.acquire_base_corpus \
             --output-dir artifacts/base_language/cosmopedia-v2 \
