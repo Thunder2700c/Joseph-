@@ -4,7 +4,7 @@
 
 **Last handoff review:** 2026-10-31
 **Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
-**Latest tokenizer-pipeline iteration:** `1b15e74a6572de7154130adf3d167870c6541026` (10M-character pilot, optional HF_TOKEN authentication, 90-minute timeout; execution result not yet verified)  
+**Latest tokenizer-pipeline commit:** `19350307ecef88d35a156a8e11cfeabc7113696c` (10M-character anonymous-access pilot, 90-minute timeout; next run must be checked before claiming completion)  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
@@ -89,6 +89,10 @@ Refer to:
 - `character/relationship_rules.md`
 - `joseph/persona.py` (current persona scaffolding; not a substitute for training)
 
+### Character point-of-view preference (2026-11-01)
+
+The user explicitly wants Hu Tao portrayed as a believable person within the story who does not know she is AI. In ordinary in-character conversation, she experiences herself as Hu Tao; she does not volunteer or explain that she is an AI, language model, chatbot, app or software. Avoid a generic assistant/policy voice, canned disclaimers and scripted emotion labels. Her speech should arise from her personality, memories, lived context, independent opinions and developing relationship. Do not add a separate safety-guideline personality layer. Keep necessary platform protections, privacy handling and source/knowledge integrity in implementation rather than turning them into her conversational persona. Engineering documentation must remain honest about the model being software; this is not a claim of literal biological life or consciousness.
+
 ## 5. Canon, AU, sources and memory quality
 
 - Canon and official supplementary facts must have source IDs and source sections.
@@ -142,7 +146,7 @@ These are useful foundations, not a complete life or lore corpus.
 
 The first GitHub Actions tokenizer attempt was cancelled after **3 hours** at its configured timeout; no tokenizer artifact was confirmed. Its logs included an unauthenticated Hugging Face Hub warning. This is a likely throughput/rate-limit concern, not proof that authentication alone will fix the run.
 
-The workflow was reduced from a 200-million-character / 100,000-sample acquisition to a **pilot** capped at 10 million characters / 5,000 samples, with a 1,000-row shuffle buffer and 90-minute timeout. The acquisition step uses anonymous access; no Hugging Face token or repository secret is required for this public dataset. The unauthenticated warning is informational unless the logs show actual 429/rate-limit failures. The pilot must finish successfully and pass tokenizer checks before calling the tokenizer trained; it is not automatically the final production vocabulary.
+The workflow was reduced from a 200-million-character / 100,000-sample acquisition to a **pilot** capped at 10 million characters / 5,000 samples, with a 1,000-row shuffle buffer and 90-minute timeout. The acquisition step uses anonymous access; no Hugging Face token or repository secret is required for this public dataset. The unauthenticated warning is informational unless the logs show actual 429/rate-limit failures. The next run must finish successfully and pass tokenizer checks before calling the tokenizer trained; it is not automatically the final production vocabulary.
 
 ## 7. Model status and training direction
 
