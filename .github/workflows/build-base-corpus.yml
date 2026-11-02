@@ -1,5 +1,5 @@
 name: Build 200M Cosmopedia corpus and tokenizer
-run-name: Build 20 disjoint Cosmopedia shards and fit final tokenizer
+run-name: Rebuild 200M Cosmopedia corpus and tokenizer with corrected manifest validation
 
 on:
   push:
@@ -143,7 +143,7 @@ jobs:
           tokenizer_path = root / "tokenizer.json"
           corpus_manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
           tokenizer_manifest = json.loads(
-              (root / "tokenizer.manifest.json").read_text(encoding="utf-8")
+              (root / "tokenizer.json.manifest.json").read_text(encoding="utf-8")
           )
 
           def sha256(path):
@@ -202,7 +202,7 @@ jobs:
             artifacts/base_language/cosmopedia-v2/validation.txt
             artifacts/base_language/cosmopedia-v2/manifest.json
             artifacts/base_language/tokenizer.json
-            artifacts/base_language/tokenizer.manifest.json
+            artifacts/base_language/tokenizer.json.manifest.json
           if-no-files-found: error
           compression-level: 6
           retention-days: 3
