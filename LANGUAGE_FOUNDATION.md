@@ -40,7 +40,7 @@ The 10M pilot and full 200M Cosmopedia v2 corpus have now both been acquired, va
 
 No neural base model has been trained and no Hu Tao character model exists. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run still needs an external machine with network and suitable training compute.
 
-The current approximately 4.94M-parameter default Transformer remains a small research baseline (the 8,192-token tokenizer setting increases embedding parameters). It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The current 200-million-character corpus cap is only a pipeline pilot, roughly tens of millions of tokens, not a serious pretraining budget. For scale context, Hugging Face reports that SmolLM's 135M/360M models were trained on 600B tokens and the 1.7B model on 1T tokens; those runs also used a broader data mixture and are not a direct recipe for this project. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
+The default 8,192-vocabulary reference Transformer is approximately 6.90M parameters. A separate 1.86M-parameter configuration is being used for the first CPU calibration run. It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The current 200-million-character corpus cap is only a pipeline pilot, roughly tens of millions of tokens, not a serious pretraining budget. For scale context, Hugging Face reports that SmolLM's 135M/360M models were trained on 600B tokens and the 1.7B model on 1T tokens; those runs also used a broader data mixture and are not a direct recipe for this project. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
 ## Commands
 
@@ -105,7 +105,7 @@ Cosmopedia v2 supplies educational prose and stories, not authentic conversation
 
 1. Run corpus acquisition and inspect its manifest, token count and licence attribution.
 2. Fit and test the tokenizer on the actual training split, then archive its manifest.
-3. Choose model dimensions and training-token budget from measured hardware throughput; the 4.94M model is only a baseline.
+3. Use the CPU calibration measurements to estimate feasible training time; choose model dimensions and training-token budget from measured throughput rather than guesswork.
 4. Run controlled base training, record loss/perplexity, throughput, peak memory, generation samples and checkpoint size.
 5. Continue expanding/reviewing Hu Tao's former-life memories and public Teyvat knowledge.
 6. Once stages 1–9 pass review, build original first-person Hu Tao dialogue data and continue training for her character.
