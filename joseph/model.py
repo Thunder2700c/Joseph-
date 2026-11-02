@@ -30,14 +30,16 @@ class CausalSelfAttention(nn.Module):
         qkv = self.qkv(x).view(batch, length, 3, self.n_heads, self.head_dim)
         q, k, v = qkv.unbind(dim=2)
         q, k, v = q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)
-        scores = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
-        causal_mask = torch.triu(
-            torch.ones(length, length, device=x.device, dtype=torch.bool),
-            diagonal=1,
+        # PyTorch's fused scaled-dot-product attention applies the causal
+        # mask without materialising a full attention matrix where supported.
+        output = F.scaled_dot_product_attention(
+            q,
+            k,
+            v,
+            attn_mask=None,
+            dropout_p=self.attention_dropout.p if self.training else 0.0,
+            is_causal=True,
         )
-        scores = scores.masked_fill(causal_mask, torch.finfo(scores.dtype).min)
-        weights = self.attention_dropout(F.softmax(scores, dim=-1))
-        output = weights @ v
         output = output.transpose(1, 2).contiguous().view(batch, length, width)
         return self.residual_dropout(self.projection(output))
 
