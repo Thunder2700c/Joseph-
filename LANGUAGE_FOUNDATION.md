@@ -34,9 +34,11 @@ The script streams rows, deduplicates normalized text, generates deterministic t
 
 ## Current execution state
 
-GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd814: 47 unit tests passed, Python modules compiled, and a tiny two-step CPU training smoke test measured train/validation loss and saved a checkpoint. This verifies the execution path and checkpoint creation, not the actual external dataset download or useful language-model quality.
+GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd814: 47 unit tests passed, Python modules compiled, and a tiny two-step CPU training smoke test measured train/validation loss and saved a checkpoint. This verifies the execution path and checkpoint creation, not useful language-model quality.
 
-No completed Cosmopedia tokenizer artifact has been verified yet, no base model has been trained, and no Hu Tao character model exists. The repository now has a bounded 10M pilot and a 20-partition full-corpus workflow; completion must be verified from GitHub Actions artifacts. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run therefore still needs an external machine with network and suitable training compute.
+The 10M pilot and full 200M Cosmopedia v2 corpus have now both been acquired, validated and permanently archived as GitHub Releases. The full 200M run completed all 20 source partitions, global deduplication, split-integrity checks, tokenizer fitting, and Unicode checks. It contains 199,947,904 characters (50,907 train samples and 2,687 validation samples); the 8,192-entry tokenizer is 560,288 bytes. Validation text was not used to fit the tokenizer. See the verified run and permanent archive in CONTINUATION_CONTEXT.md.
+
+No neural base model has been trained and no Hu Tao character model exists. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run still needs an external machine with network and suitable training compute.
 
 The current approximately 4.94M-parameter default Transformer remains a small research baseline (the 8,192-token tokenizer setting increases embedding parameters). It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The current 200-million-character corpus cap is only a pipeline pilot, roughly tens of millions of tokens, not a serious pretraining budget. For scale context, Hugging Face reports that SmolLM's 135M/360M models were trained on 600B tokens and the 1.7B model on 1T tokens; those runs also used a broader data mixture and are not a direct recipe for this project. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
@@ -84,23 +86,16 @@ The first non-sharded three-hour attempt was cancelled before producing a verifi
 
 **Execution is not considered successful merely because workflow files were committed.** Confirm a completed GitHub Actions run and download the `joseph-cosmopedia-v2-merged-200m-tokenizer` artifact before claiming the full corpus or final tokenizer exists. The 20 × 10M settings are upper bounds: the final manifest reports the actual unique character and sample counts, which may be lower after global deduplication. This stage acquires text and trains the tokenizer; it does not train neural weights.
 
-## Live acquisition status (2026-11-01)
+## Verified corpus and tokenizer status (2026-11-03)
 
-The user made `Thunder2700c/Joseph-` public. This was independently verified from GitHub repository metadata (`private: false`). Standard GitHub-hosted runner usage for public repositories is free; artifact storage remains subject to the GitHub plan's shared storage allowance, so intermediate shard artifacts are retained for one day and the final artifact for three days. See GitHub Actions billing documentation.
+- The 10M pilot shard 0 completed successfully in [Actions run 41428063861](https://github.com/Thunder2700c/Joseph-/actions/runs/41428063861). It contains 9,999,831 characters, 2,539 train samples and 147 validation samples. The 8,192-entry ByteLevel BPE tokenizer passed four Unicode round trips.
+- The full build completed successfully in [Actions run 41429138745](https://github.com/Thunder2700c/Joseph-/actions/runs/41429138745): all 20 source partitions passed, global merge and deduplication succeeded, and final tokenizer validation passed.
+- Final full-corpus manifest: 199,947,904 characters, 50,907 train samples, 2,687 validation samples, 11 duplicates removed across shards. Approximately 49,986,976 tokens at four characters per token; this number is an estimate.
+- Final tokenizer: 8,192 vocabulary entries, 560,288 bytes, SHA-256 `57911f2d25e2733f36b172160e07dc6649c1501afa2e76b440b71829adc995ab`. Validation split was excluded from fitting.
+- Permanent archives: [10M pilot release](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-pilot-10m-2026-11-02) and [full 200M release](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-merged-200m-2026-11-02). The release assets include the dataset attribution README, corpus, manifests and tokenizer.
+- The full workflow uses pinned Cosmopedia v2 revision `3ba9d60` and records `ODC-By-1.0` as the dataset-card licence. Only the `text` field was used; `prompt` and `seed_data` were excluded.
 
-The 10-million-character tokenizer pilot:
-- Run: [41293340375](https://github.com/Thunder2700c/Joseph-/actions/runs/41293340375)
-- At the latest check: `in_progress`, still at the “Acquire capped Cosmopedia v2 corpus” step.
-- A second trigger was created by commit `a2f1ea0ccb3d0ed921f599a21628a287a78bd2c0`; run [41296346001](https://github.com/Thunder2700c/Joseph-/actions/runs/41296346001) was `pending` behind the same workflow concurrency group. Do not start another duplicate pilot unless the state changes.
-
-The 20-partition 200-million-character acquisition workflow:
-- Run: [41295607839](https://github.com/Thunder2700c/Joseph-/actions/runs/41295607839)
-- At the latest check: 20 matrix jobs created; shard 0 completed successfully, shards 1 and 2 were acquiring data, and 17 shard jobs were queued.
-- The source reports 104 underlying data shards.
-- Shard 0 downloaded and validated 9,999,831 unique characters: 2,539 train samples, 147 validation samples, zero duplicates within the shard, and an approximate 2,499,958 tokens. Its uploaded artifact was 3,714,469 bytes.
-- Its logs showed the unauthenticated Hugging Face warning, but the shard still completed, passed provenance/size checks and uploaded successfully.
-
-These are live snapshots, not final results. The overall 200M workflow still needs all 20 partitions, global deduplication, merged manifest verification and final 8,192-vocabulary tokenizer fitting. No neural-model training has started. Refresh the run links before reporting updated progress.
+This stage is complete as a corpus/tokenizer acquisition task. It has **not** trained any neural model weights. The full-corpus training data is not committed into the repository or included in the inference bundle.
 
 ## Conversation-data follow-up
 
