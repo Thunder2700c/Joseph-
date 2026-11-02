@@ -25,7 +25,7 @@ Do not switch to Android development during steps 1–6.
 
 ## Current model prototype — not a finished model
 
-The current default `ModelConfig` remains a deliberately small baseline: 512 vocabulary entries, 256-dimensional hidden state, 6 Transformer layers, 8 attention heads, 256-token context and a 1 GB maximum checkpoint/weight budget. It is approximately 4.94M parameters. The tokenizer now uses Rust-backed ByteLevel BPE with ten reserved control IDs, including `<|user|>` and `<|hutao|>`. A capped Cosmopedia v2 acquisition tool and disk-backed int32 token-cache pipeline have been added. These are experimental foundations; no actual base tokenizer fit or model run has yet been performed.
+The current default `ModelConfig` remains a deliberately small baseline: 512 vocabulary entries, 256-dimensional hidden state, 6 Transformer layers, 8 attention heads, 256-token context and a 1 GB maximum checkpoint/weight budget. It is approximately 4.94M parameters, but it is not yet a plausible finished conversational model. The project-trained Rust-backed ByteLevel BPE tokenizer has now been fitted on the merged 200M corpus with 8,192 vocabulary entries and ten reserved control IDs, including `<|user|>` and `<|hutao|>`. The full Cosmopedia v2 corpus contains 199,947,904 characters from 20 verified partitions, with train/validation integrity and file hashes checked; it is permanently archived in the linked GitHub Release documented in CONTINUATION_CONTEXT.md. The disk-backed int32 token-cache pipeline and training loop exist, but **no neural base-model weights have been trained yet**.
 
 These are foundations for experiments only. A model this small and randomly initialized is not yet capable of the intended conversation. Loss reduction alone is not enough.
 
