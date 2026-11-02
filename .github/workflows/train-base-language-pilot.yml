@@ -1,0 +1,139 @@
+name: Base language training calibration
+run-name: Random-initialized 8192-token-vocabulary base-model pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/train-base-language-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: joseph-base-language-calibration
+  cancel-in-progress: true
+
+jobs:
+  train-calibration-pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU training dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "tokenizers>=0.21,<1"
+
+      - name: Download the archived 200M training corpus and tokenizer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data/corpus
+          gh release download joseph-base-corpus-merged-200m-2026-11-02 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern joseph-cosmopedia-v2-merged-200m-tokenizer.zip \
+            --dir data/corpus
+          unzip -q data/corpus/joseph-cosmopedia-v2-merged-200m-tokenizer.zip -d data/corpus/merged
+
+      - name: Verify the source corpus and tokenizer hashes
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("data/corpus/merged")
+          corpus = root / "cosmopedia-v2"
+          manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+          tokenizer_manifest = json.loads((root / "tokenizer.json.manifest.json").read_text(encoding="utf-8"))
+
+          def sha256(path):
+              return hashlib.sha256(path.read_bytes()).hexdigest()
+
+          assert manifest["dataset_revision"] == "3ba9d60"
+          assert manifest["dataset_license"] == "ODC-By-1.0"
+          assert len(manifest["shards"]) == 20
+          assert manifest["samples"]["total_characters"] == 199_947_904
+          assert tokenizer_manifest["tokenizer_sha256"] == sha256(root / "tokenizer.json")
+          assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
+          for name in ("train.txt", "validation.txt"):
+              assert manifest["files"][name]["sha256"] == sha256(corpus / name)
+          print(json.dumps({
+              "dataset_revision": manifest["dataset_revision"],
+              "license": manifest["dataset_license"],
+              "samples": manifest["samples"],
+              "tokenizer_vocab_size": tokenizer_manifest["vocab_size"],
+              "tokenizer_sha256": tokenizer_manifest["tokenizer_sha256"],
+              "validation_text_used_for_tokenizer": False,
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Train the first random-initialized base-model calibration checkpoint
+        run: |
+          python -m training.train \
+            --input data/corpus/merged/cosmopedia-v2/train.txt \
+            --validation data/corpus/merged/cosmopedia-v2/validation.txt \
+            --tokenizer data/corpus/merged/tokenizer.json \
+            --output artifacts/base_language/base-calibration-pilot.pt \
+            --token-cache-dir work/token-cache \
+            --metrics-file artifacts/base_language/base-calibration-pilot.metrics.jsonl \
+            --run-metadata artifacts/base_language/base-calibration-pilot.run.json \
+            --steps 1000 \
+            --batch-size 8 \
+            --seq-len 128 \
+            --d-model 128 \
+            --n-layers 4 \
+            --n-heads 4 \
+            --dropout 0.1 \
+            --learning-rate 0.0003 \
+            --weight-decay 0.1 \
+            --eval-interval 100 \
+            --eval-batches 4 \
+            --seed 1337 \
+            --num-threads 2 \
+            --device cpu
+
+      - name: Validate complete experimental AI payload size
+        run: |
+          mkdir -p artifacts/base_language/inference-pilot
+          cp artifacts/base_language/base-calibration-pilot.pt artifacts/base_language/inference-pilot/model.pt
+          cp data/corpus/merged/tokenizer.json artifacts/base_language/inference-pilot/tokenizer.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from joseph.config import ModelConfig
+          from training.validate_ai_bundle import validate_ai_bundle
+
+          source = Path("artifacts/base_language/base-calibration-pilot.run.json")
+          run = json.loads(source.read_text(encoding="utf-8"))
+          config = ModelConfig.from_dict(run["model_config"])
+          (Path("artifacts/base_language/inference-pilot") / "config.json").write_text(
+              json.dumps(config.to_dict(), indent=2) + "\n", encoding="utf-8"
+          )
+          report = validate_ai_bundle("artifacts/base_language/inference-pilot")
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Upload calibration checkpoint and measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-base-language-calibration-pilot
+          path: |
+            artifacts/base_language/base-calibration-pilot.pt
+            artifacts/base_language/base-calibration-pilot.metrics.jsonl
+            artifacts/base_language/base-calibration-pilot.run.json
+            artifacts/base_language/inference-pilot/config.json
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
