@@ -170,7 +170,7 @@ The repository is public (verified from GitHub repository metadata); the user ex
 
 #### Workflow maintenance after the successful full build
 
-A follow-up commit `8bb68b123b1657f06849345ead2199ecf6888316` changed the 200M workflow to reuse the 10M pilot as shard 0 and acquire only source shards 1–19. Before this extra run was allowed to finish, the already successful run #2 above was discovered. A redundant run #3 (ID `41539757195`) was already in progress at the last status check; it is not the canonical source of the archived 200M artifact and should not be mistaken for the successful full run.
+A follow-up commit `8bb68b123b1657f06849345ead2199ecf6888316` changed the 200M workflow to reuse the 10M pilot as shard 0 and acquire only source shards 1–19. Before this extra run was allowed to finish, the already successful run #2 above was discovered. A redundant run #3 (ID `41539757195`) was later cancelled after the already-successful full run was discovered. The subsequent push-triggered run #4 (ID `41540180756`) was skipped by the manual-dispatch guard. Neither is the source of the archived corpus; the canonical build remains run #2.
 
 The current workflow was subsequently adjusted in commit `8fb5d6e15b53d5eda3bbc81896c93f4107095f88`: shard acquisition runs only for an intentional `workflow_dispatch`, while pushes that merely edit workflow files do not start another long corpus acquisition. Future intentional rebuilds remain manually dispatchable. Since the full 200M archive already exists, no rebuild is currently needed.
 
