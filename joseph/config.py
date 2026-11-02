@@ -8,7 +8,7 @@ AI_PACKAGE_MAX_BYTES = 1_000_000_000
 
 @dataclass
 class ModelConfig:
-    vocab_size: int = 512
+    vocab_size: int = 8192
     d_model: int = 256
     n_layers: int = 6
     n_heads: int = 8
