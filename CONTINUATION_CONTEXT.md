@@ -200,7 +200,7 @@ A successful calibration checkpoint only demonstrates a functioning optimization
 
 The repository contains a prototype random-initialized decoder-only Transformer, project-trained ByteLevel BPE tokenizer pipeline, streamed text-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities. The complete distributable AI payload is strictly capped at 1,000,000,000 bytes; no pretrained model weights or external AI models may be used.
 
-Current default configuration in `joseph/config.py` remains a small baseline: vocabulary size 512, model width 256, 6 layers, 8 attention heads, 256-token context and a checkpoint ceiling bounded by the complete 1,000,000,000-byte AI package cap. The default is approximately 4.94 million parameters and starts from random initialization. It is only a pipeline baseline, not a plausible finished conversational model. **There is no trained base model or capable Hu Tao checkpoint yet.**
+Current default configuration in `joseph/config.py` is a reference baseline with vocabulary size 8,192 (matching the fitted tokenizer), model width 256, 6 layers, 8 attention heads and 256-token context. It is approximately 6.90 million parameters and starts from random initialization. The separate first calibration experiment uses 128 width, 4 layers and 4 heads (approximately 1.86 million parameters). Neither configuration is yet a plausible finished conversational model. **There is no completed base-model checkpoint or capable Hu Tao checkpoint yet; the first calibration optimizer run is currently in progress.**
 
 ### Required training philosophy
 
