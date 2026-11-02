@@ -1,5 +1,5 @@
 name: Build base tokenizer
-run-name: Start 10M Cosmopedia corpus acquisition and tokenizer fit — ${{ github.sha }}
+run-name: Acquire 10M Cosmopedia v2 shard 0 and fit tokenizer
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
   build-tokenizer:
     name: Acquire corpus and fit tokenizer
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -44,6 +44,8 @@ jobs:
           python -m training.acquire_base_corpus \
             --output-dir artifacts/base_language/cosmopedia-v2 \
             --max-samples 5000 \
+            --num-shards 20 \
+            --shard-index 0 \
             --max-characters 10000000 \
             --max-document-characters 100000 \
             --validation-percent 5 \
@@ -69,7 +71,7 @@ jobs:
           root = Path("artifacts/base_language")
           corpus = root / "cosmopedia-v2"
           tokenizer_path = root / "tokenizer.json"
-          tokenizer_manifest_path = root / "tokenizer.manifest.json"
+          tokenizer_manifest_path = root / "tokenizer.json.manifest.json"
           corpus_manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
           tokenizer_manifest = json.loads(tokenizer_manifest_path.read_text(encoding="utf-8"))
 
@@ -86,6 +88,9 @@ jobs:
           assert tokenizer_manifest["tokenizer_sha256"] == sha256(tokenizer_path)
           assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
           assert tokenizer_manifest["special_tokens"] == list(SPECIAL_TOKENS)
+          assert corpus_manifest["shard"]["count"] == 20
+          assert corpus_manifest["shard"]["index"] == 0
+          assert corpus_manifest["source_shards_available"] >= 20
           assert corpus_manifest["dataset_revision"] == "3ba9d60"
           assert corpus_manifest["dataset_license"] == "ODC-By-1.0"
           assert corpus_manifest["selected_field"] == "text"
@@ -131,7 +136,7 @@ jobs:
             artifacts/base_language/cosmopedia-v2/validation.txt
             artifacts/base_language/cosmopedia-v2/manifest.json
             artifacts/base_language/tokenizer.json
-            artifacts/base_language/tokenizer.manifest.json
+            artifacts/base_language/tokenizer.json.manifest.json
           if-no-files-found: error
           compression-level: 6
           retention-days: 30
