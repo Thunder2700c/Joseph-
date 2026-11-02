@@ -14,10 +14,11 @@ permissions:
 
 concurrency:
   group: cosmopedia-base-corpus-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   acquire-shards:
+    if: github.event_name == 'workflow_dispatch'
     name: Acquire corpus shard ${{ matrix.shard }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
