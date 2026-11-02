@@ -186,6 +186,7 @@ def main() -> None:
     metrics_path = Path(args.metrics_file) if args.metrics_file else Path(str(output_path) + ".metrics.jsonl")
     metadata_path = Path(args.run_metadata) if args.run_metadata else Path(str(output_path) + ".run.json")
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metrics_path.write_text("", encoding="utf-8")
 
     metadata = {
@@ -194,7 +195,7 @@ def main() -> None:
         "initialization": "random",
         "seed": args.seed,
         "python": platform.python_version(),
-        "pytorch": torch.__version__,
+        "pytorch": str(torch.__version__),
         "device": device,
         "cpu_threads": torch.get_num_threads(),
         "training_file_sha256": train_hash,
