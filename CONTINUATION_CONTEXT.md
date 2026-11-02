@@ -178,6 +178,22 @@ The prior failed run [#1 — 20 disjoint Cosmopedia shards](https://github.com/T
 
 No neural base-model weights have been trained. The 10M and 200M outputs are corpora, manifests and project-trained tokenizers only. Tokenizer fitting is not neural language-model training.
  
+### First base-language calibration run (2026-11-03)
+
+The general-language base model is now entering its first actual random-initialized training experiment. This is a **calibration pilot**, not a finished or conversationally capable model.
+
+- Code commit for the initial training path: `a9edd60ee5ebcc23db468240da4bb8fbaef5ffe5`; follow-up verification/metadata fixes: `97f4dc597281c0141bda61521c4b9e3dc808f2eb` and `816f25bcf92875905812ab5097bb23ce980329dd`.
+- Workflow: [Base language training calibration](https://github.com/Thunder2700c/Joseph-/actions/workflows/train-base-language-pilot.yml).
+- First workflow attempt [41541468461](https://github.com/Thunder2700c/Joseph-/actions/runs/41541468461) downloaded the release successfully, then stopped before training because the workflow read the wrong tokenizer-manifest key. The manifest field is `tokenizer_vocab_size`; this was corrected in the next run.
+- Corrected run: [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443). Inspect its current status and logs before claiming training started or completed.
+- Pilot architecture: random initialization, 8,192 vocabulary entries, 128 hidden width, 4 Transformer layers, 4 heads, 128-token context; batch size 8; AdamW learning rate 0.0003 and weight decay 0.1; 1,000 steps × 1,024 tokens per step (1,024,000 optimizer-seen tokens).
+- The calibration model is intentionally modest (about 1.86M parameters). It is a throughput/optimization experiment against the real training split, not the planned final model. If its speed is adequate, later runs can increase training tokens and test model dimensions; if CPU throughput is poor, secure appropriate GPU training compute before attempting a full-corpus run.
+- The trainer now writes a JSONL metric history and run metadata, including exact train/validation/tokenizer SHA-256 hashes, vocabulary size, model configuration, validation loss/perplexity, tokens per second, elapsed time, and checkpoint bytes. CUDA runs also record peak allocated VRAM.
+- The reference model now uses PyTorch scaled-dot-product causal attention. The default `ModelConfig.vocab_size` matches the fitted tokenizer's 8,192 vocabulary entries.
+- The tests workflow passed on the initial code commit [41541468527](https://github.com/Thunder2700c/Joseph-/actions/runs/41541468527); later code commits triggered fresh test runs and must be checked before declaring the latest revision fully green.
+
+A successful calibration checkpoint only demonstrates a functioning optimization run. It does not prove general language ability, Hu Tao identity, or readiness for Android. Hu Tao-specific identity/dialogue training remains blocked until former-life stages 1–9 pass substantive review.
+
 ## 7. Model status and training direction
 
 ### Current code status
