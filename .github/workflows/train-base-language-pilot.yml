@@ -66,6 +66,7 @@ jobs:
           assert manifest["samples"]["total_characters"] == 199_947_904
           assert tokenizer_manifest["tokenizer_sha256"] == sha256(root / "tokenizer.json")
           assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["tokenizer_vocab_size"] == 8192
           assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
           for name in ("train.txt", "validation.txt"):
               assert manifest["files"][name]["sha256"] == sha256(corpus / name)
@@ -73,7 +74,7 @@ jobs:
               "dataset_revision": manifest["dataset_revision"],
               "license": manifest["dataset_license"],
               "samples": manifest["samples"],
-              "tokenizer_vocab_size": tokenizer_manifest["vocab_size"],
+              "tokenizer_vocab_size": tokenizer_manifest["tokenizer_vocab_size"],
               "tokenizer_sha256": tokenizer_manifest["tokenizer_sha256"],
               "validation_text_used_for_tokenizer": False,
           }, ensure_ascii=False, indent=2))
