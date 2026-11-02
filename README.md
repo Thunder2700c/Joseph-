@@ -41,13 +41,13 @@ The intended app experience is a single persistent, WhatsApp-style thread with H
 
 The general-language foundation uses a capped, streamed sample of Cosmopedia v2 from Hugging Face's SmolLM-Corpus. The acquisition recipe, licence attribution and dataset limitations are documented in [datasets/base_language/README.md](datasets/base_language/README.md). This is separate from Hu Tao's life memories and dialogue.
 
-The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer supports a held-out validation split. **No corpus has yet been downloaded and no model has yet been trained.** See [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md).
+The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer supports a held-out validation split. **The full 200M-character corpus and 8,192-entry tokenizer have been verified and permanently archived.** A first random-initialized base-model calibration run is now being executed; no usable Hu Tao model exists yet. See [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md).
 
 ## Model size is not memory size
 
 The 1 GB limit is a hard maximum for the **complete distributable AI inference payload**, not just the checkpoint and not the context window. It is 1,000,000,000 bytes total across weights, tokenizer/vocabulary, config, generation metadata and all auxiliary AI assets. There is no minimum size. The separately stored training corpus and user-owned memory databases are not bundled into this payload.
 
-- The current experimental Transformer is about 4.94 million parameters and roughly 19 MiB of raw FP32 weights.
+- The default 8,192-vocabulary reference Transformer is estimated at about 6.90 million parameters and roughly 26.3 MiB of raw FP32 weights; actual configuration and checkpoint metadata are recorded per run.
 - Its default active context is 256 tokens; that token limit is separate from the weight budget.
 - The local SQLite transcript and knowledge databases can grow independently of the model weights, subject to phone storage.
 - On each reply, retrieval selects useful old messages and facts rather than placing an entire lifetime of conversation into the active prompt.
