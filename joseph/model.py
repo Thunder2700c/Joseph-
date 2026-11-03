@@ -115,7 +115,8 @@ class JosephLanguageModel(nn.Module):
         token_ids: torch.Tensor,
         targets: torch.Tensor | None = None,
         loss_mask: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        return_logits: bool = True,
+    ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         if token_ids.ndim != 2:
             raise ValueError("token_ids must have shape [batch, sequence]")
         batch, length = token_ids.shape
@@ -148,7 +149,7 @@ class JosephLanguageModel(nn.Module):
                 if not torch.isfinite(denominator) or denominator.item() <= 0:
                     raise ValueError("loss_mask must select at least one target token")
                 loss = (token_losses * mask).sum() / denominator
-        return logits, loss
+        return (logits if return_logits else None), loss
 
     @torch.no_grad()
     def generate(
