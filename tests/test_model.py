@@ -69,6 +69,38 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(tuple(generated.shape), (1, 4))
         self.assertEqual(int(generated[0, -1]), 2)
 
+    def test_masked_loss_equals_cross_entropy_on_only_selected_targets(self):
+        config = ModelConfig(
+            vocab_size=270, d_model=32, n_layers=1, n_heads=4,
+            block_size=16, dropout=0.0,
+        )
+        model = JosephLanguageModel(config)
+        model.eval()
+        inputs = torch.randint(0, config.vocab_size, (2, 8))
+        targets = torch.randint(0, config.vocab_size, (2, 8))
+        mask = torch.zeros((2, 8), dtype=torch.bool)
+        mask[:, 4:7] = True
+
+        logits, masked_loss = model(inputs, targets, mask)
+        token_losses = torch.nn.functional.cross_entropy(
+            logits.reshape(-1, config.vocab_size),
+            targets.reshape(-1),
+            reduction="none",
+        ).view_as(targets)
+        expected = token_losses[mask].mean()
+        self.assertTrue(torch.allclose(masked_loss, expected, atol=1e-6))
+
+    def test_masked_loss_rejects_empty_target_set(self):
+        config = ModelConfig(
+            vocab_size=270, d_model=32, n_layers=1, n_heads=4,
+            block_size=16, dropout=0.0,
+        )
+        model = JosephLanguageModel(config)
+        inputs = torch.randint(0, config.vocab_size, (1, 8))
+        targets = torch.randint(0, config.vocab_size, (1, 8))
+        with self.assertRaises(ValueError):
+            model(inputs, targets, torch.zeros((1, 8), dtype=torch.bool))
+
     def test_logits_loss_and_generation_shapes(self):
         config = ModelConfig(
             vocab_size=270, d_model=32, n_layers=1, n_heads=4,
