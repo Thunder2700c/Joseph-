@@ -1,6 +1,6 @@
-# Joseph
+# Hu Tao — Offline Character AI
 
-**Joseph** is the internal engineering codename for an offline-first companion whose user-facing character is **Hu Tao** in a staged reincarnation story. The goal is a locally running companion with a rich, source-aware Teyvat history, one continuous personal conversation, durable recall, and user-taught knowledge about our world.
+**Hu Tao is the character and AI identity.** The GitHub repository is named `Joseph-` only because `Hu Tao` was unavailable as a repository name. "Joseph" is not her name, an internal codename, or an in-character identity. The goal is a locally running Hu Tao companion with a rich, source-aware Teyvat history, one continuous personal conversation, durable recall, and user-taught knowledge about our world.
 
 This is a from-scratch Hu Tao character-model research project. It does not contain a completed trained Hu Tao checkpoint or a finished Android application.
 
@@ -10,7 +10,7 @@ Read [CONTINUATION_CONTEXT.md](CONTINUATION_CONTEXT.md) first when resuming this
 
 The current order is: **build the general language foundation while former-life research continues → finish and review Hu Tao's former-life memories → directly train and evaluate her character behaviour → only then build the Android app.** Hu Tao-specific training remains gated on reviewed life memories and public Teyvat knowledge.
 
-Joseph is the repository/engineering codename. Hu Tao is the character. In-character, she speaks as Hu Tao and does not introduce herself as an AI assistant. Technically, the implementation remains a neural language model; the project target is a purpose-trained Hu Tao character model, not a generic assistant relying on a roleplay prompt.
+The repository slug `Joseph-` is a GitHub naming constraint only. It is not an engineering codename or an identity. Hu Tao is the character and AI identity. In-character, she speaks as Hu Tao and does not introduce herself as an AI assistant. Technically, the implementation remains a neural language model; the project target is a purpose-trained Hu Tao character model, not a generic assistant relying on a roleplay prompt.
 
 ## Canon and point of view
 
@@ -41,7 +41,7 @@ The intended app experience is a single persistent, WhatsApp-style thread with H
 
 The general-language foundation uses a capped, streamed sample of Cosmopedia v2 from Hugging Face's SmolLM-Corpus. The acquisition recipe, licence attribution and dataset limitations are documented in [datasets/base_language/README.md](datasets/base_language/README.md). This is separate from Hu Tao's life memories and dialogue.
 
-The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer supports a held-out validation split. **The full 200M-character corpus and 8,192-entry tokenizer have been verified and permanently archived.** A first random-initialized base-model calibration run is now being executed; no usable Hu Tao model exists yet. See [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md).
+The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer supports a held-out validation split. The full 200M-character corpus and 8,192-entry tokenizer were verified in Actions run [41429138745](https://github.com/Thunder2700c/Joseph-/actions/runs/41429138745); its temporary artifact expires on 2026-11-05 at 12:07 UTC. A subsequent 40,000-step random-initialized base-language run completed, but its diagnostic text remained incoherent and failed the language-quality gate. No usable Hu Tao model exists yet. The corpus is rebuilt as a temporary workflow artifact when a new training run is explicitly dispatched; it is not stored as a permanent GitHub Release. See [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md).
 
 ## Model size is not memory size
 
