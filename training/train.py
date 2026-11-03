@@ -152,6 +152,7 @@ def main() -> None:
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=0.1)
     parser.add_argument("--warmup-steps", type=int, default=400)
+    parser.add_argument("--schedule-total-steps", type=int, help="global schedule length; keep unchanged when resuming a partial run")
     parser.add_argument("--min-learning-rate-ratio", type=float, default=0.1)
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--eval-batches", type=int, default=10)
@@ -176,6 +177,9 @@ def main() -> None:
         parser.error("learning-rate must be positive and weight-decay cannot be negative")
     if args.warmup_steps < 0 or not 0.0 <= args.min_learning_rate_ratio <= 1.0:
         parser.error("warmup-steps must be non-negative and min-learning-rate-ratio must be in [0, 1]")
+    schedule_total_steps = args.schedule_total_steps or args.steps
+    if schedule_total_steps < args.steps:
+        parser.error("schedule-total-steps cannot be smaller than steps in this run")
     if args.num_threads is not None and args.num_threads < 1:
         parser.error("--num-threads must be positive")
 
@@ -315,7 +319,7 @@ def main() -> None:
     def learning_rate_multiplier(step_index: int) -> float:
         if args.warmup_steps > 0 and step_index < args.warmup_steps:
             return max((step_index + 1) / args.warmup_steps, 1e-6)
-        decay_steps = max(args.steps - args.warmup_steps, 1)
+        decay_steps = max(schedule_total_steps - args.warmup_steps, 1)
         progress = min(max((step_index - args.warmup_steps) / decay_steps, 0.0), 1.0)
         cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
         return args.min_learning_rate_ratio + (1.0 - args.min_learning_rate_ratio) * cosine
@@ -390,6 +394,7 @@ def main() -> None:
         "batch_size": args.batch_size,
         "sequence_length": args.seq_len,
         "steps_requested": args.steps,
+        "schedule_total_steps": schedule_total_steps,
         "global_step_start": parent_checkpoint_step + 1,
         "evaluation_batches_per_split": args.eval_batches,
         "evaluation_seed": args.eval_seed,
@@ -417,6 +422,12 @@ def main() -> None:
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+    if parent_checkpoint_step + args.steps > schedule_total_steps:
+        parser.error(
+            f"global checkpoint step {parent_checkpoint_step + args.steps} would exceed "
+            f"schedule-total-steps={schedule_total_steps}"
+        )
 
     if args.init_checkpoint:
         print(
