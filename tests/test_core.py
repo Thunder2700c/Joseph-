@@ -34,7 +34,18 @@ class TokenizerTests(unittest.TestCase):
         self.assertIn(tokenizer.special_token_id("<|user|>"), encoded)
         self.assertIn(tokenizer.special_token_id("<|hutao|>"), encoded)
         self.assertEqual(tokenizer.decode(encoded, skip_special_tokens=False), text)
-        self.assertEqual(len(SPECIAL_TOKENS), 10)
+        self.assertEqual(len(SPECIAL_TOKENS), 11)
+
+    def test_generic_assistant_marker_is_atomic_and_distinct_from_hutao(self):
+        text = "<|user|>Question<|assistant|>Generic answer<|eot|><|hutao|>Hu Tao answer"
+        tokenizer = ByteBPETokenizer.train([text * 3], vocab_size=320)
+        encoded = tokenizer.encode(text)
+        assistant_id = tokenizer.special_token_id("<|assistant|>")
+        hutao_id = tokenizer.special_token_id("<|hutao|>")
+        self.assertIn(assistant_id, encoded)
+        self.assertIn(hutao_id, encoded)
+        self.assertNotEqual(assistant_id, hutao_id)
+        self.assertEqual(tokenizer.decode(encoded, skip_special_tokens=False), text)
 
 
 class KnowledgeTests(unittest.TestCase):
