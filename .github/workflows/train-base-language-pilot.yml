@@ -1,5 +1,5 @@
-name: Base language training calibration
-run-name: Random-initialized 8192-token-vocabulary base-model pilot
+name: Base language foundation continuation
+run-name: Warm-start existing project checkpoint for 10.24M additional token exposures
 
 on:
   push:
@@ -9,10 +9,11 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
-  group: joseph-base-language-calibration
+  group: joseph-base-language-continuation
   cancel-in-progress: true
 
 jobs:
@@ -80,27 +81,60 @@ jobs:
           }, ensure_ascii=False, indent=2))
           PY
 
-      - name: Train the first random-initialized base-model calibration checkpoint
+      - name: Download and verify the previous calibration checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/previous-pilot
+          gh run download 41541564443 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name joseph-base-language-calibration-pilot \
+            --dir artifacts/previous-pilot
+          test -s artifacts/previous-pilot/base-calibration-pilot.pt
+          test -s artifacts/previous-pilot/base-calibration-pilot.run.json
+          printf '%s  %s\n' \
+            "7700fdf27b701133d13bdf6d564dbb0f88097f7230e232b8f962ffcf8de389fc" \
+            "artifacts/previous-pilot/base-calibration-pilot.pt" | sha256sum --check
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from training.checkpoint import load_checkpoint
+
+          metadata = json.loads(Path("artifacts/previous-pilot/base-calibration-pilot.run.json").read_text())
+          assert metadata["status"] == "completed"
+          assert metadata["steps_completed"] == 1000
+          assert metadata["tokens_seen_by_optimizer"] == 1_024_000
+          payload = load_checkpoint("artifacts/previous-pilot/base-calibration-pilot.pt")
+          assert payload["step"] == 1000
+          assert payload["config"]["d_model"] == 128
+          assert payload["config"]["n_layers"] == 4
+          assert payload["config"]["n_heads"] == 4
+          assert payload["config"]["block_size"] == 128
+          print("Verified parent checkpoint:", payload["step"], "steps")
+          PY
+
+      - name: Warm-start and continue general-language training (10.24M additional token exposures)
         run: |
           python -m training.train \
             --input data/corpus/merged/cosmopedia-v2/train.txt \
             --validation data/corpus/merged/cosmopedia-v2/validation.txt \
             --tokenizer data/corpus/merged/tokenizer.json \
-            --output artifacts/base_language/base-calibration-pilot.pt \
+            --output artifacts/base_language/base-language-continuation.pt \
+            --init-checkpoint artifacts/previous-pilot/base-calibration-pilot.pt \
             --token-cache-dir work/token-cache \
-            --metrics-file artifacts/base_language/base-calibration-pilot.metrics.jsonl \
-            --run-metadata artifacts/base_language/base-calibration-pilot.run.json \
-            --steps 1000 \
+            --metrics-file artifacts/base_language/base-language-continuation.metrics.jsonl \
+            --run-metadata artifacts/base_language/base-language-continuation.run.json \
+            --steps 10000 \
             --batch-size 8 \
             --seq-len 128 \
             --d-model 128 \
             --n-layers 4 \
             --n-heads 4 \
             --dropout 0.1 \
-            --learning-rate 0.0003 \
+            --learning-rate 0.0001 \
             --weight-decay 0.1 \
-            --eval-interval 100 \
-            --eval-batches 4 \
+            --eval-interval 2000 \
+            --eval-batches 32 \
             --seed 1337 \
             --num-threads 2 \
             --device cpu
@@ -108,7 +142,7 @@ jobs:
       - name: Validate complete experimental AI payload size
         run: |
           mkdir -p artifacts/base_language/inference-pilot
-          cp artifacts/base_language/base-calibration-pilot.pt artifacts/base_language/inference-pilot/model.pt
+          cp artifacts/base_language/base-language-continuation.pt artifacts/base_language/inference-pilot/model.pt
           cp data/corpus/merged/tokenizer.json artifacts/base_language/inference-pilot/tokenizer.json
           python - <<'PY'
           import json
@@ -116,7 +150,7 @@ jobs:
           from joseph.config import ModelConfig
           from training.validate_ai_bundle import validate_ai_bundle
 
-          source = Path("artifacts/base_language/base-calibration-pilot.run.json")
+          source = Path("artifacts/base_language/base-language-continuation.run.json")
           run = json.loads(source.read_text(encoding="utf-8"))
           config = ModelConfig.from_dict(run["model_config"])
           (Path("artifacts/base_language/inference-pilot") / "config.json").write_text(
@@ -126,14 +160,26 @@ jobs:
           print(json.dumps(report, indent=2))
           PY
 
-      - name: Upload calibration checkpoint and measurements
+      - name: Generate held-out qualitative text samples
+        run: |
+          python -m training.generate_samples \
+            --checkpoint artifacts/base_language/base-language-continuation.pt \
+            --tokenizer data/corpus/merged/tokenizer.json \
+            --output artifacts/base_language/base-language-continuation.samples.md \
+            --max-new-tokens 80 \
+            --temperature 0.8 \
+            --top-k 40 \
+            --seed 2026
+
+      - name: Upload continued checkpoint, metrics and generation samples
         uses: actions/upload-artifact@v4
         with:
-          name: joseph-base-language-calibration-pilot
+          name: joseph-base-language-continuation-10m
           path: |
-            artifacts/base_language/base-calibration-pilot.pt
-            artifacts/base_language/base-calibration-pilot.metrics.jsonl
-            artifacts/base_language/base-calibration-pilot.run.json
+            artifacts/base_language/base-language-continuation.pt
+            artifacts/base_language/base-language-continuation.metrics.jsonl
+            artifacts/base_language/base-language-continuation.run.json
+            artifacts/base_language/base-language-continuation.samples.md
             artifacts/base_language/inference-pilot/config.json
           if-no-files-found: error
           compression-level: 6
