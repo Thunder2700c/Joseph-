@@ -1,0 +1,201 @@
+name: Hard general-language training with conversation data
+run-name: Train a larger 256-context model on prose plus reviewed OASST1 dialogue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/train-base-language-hard.yml"
+      - "training/prepare_oasst1_corpus.py"
+      - "training/train.py"
+      - "training/checkpoint.py"
+      - "training/generate_samples.py"
+      - "tests/**"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: joseph-base-language-hard-training
+  cancel-in-progress: true
+
+jobs:
+  train-hard-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU training and data dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "tokenizers>=0.21,<1" "datasets==3.3.2"
+
+      - name: Run project tests before spending training compute
+        run: |
+          python -m compileall -q joseph training tests
+          python -m unittest discover -s tests -v
+
+      - name: Download archived 200M-character base corpus and project tokenizer
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          mkdir -p data/corpus
+          gh release download joseph-base-corpus-merged-200m-2026-11-02 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern joseph-cosmopedia-v2-merged-200m-tokenizer.zip \
+            --dir data/corpus
+          unzip -q data/corpus/joseph-cosmopedia-v2-merged-200m-tokenizer.zip -d data/corpus/merged
+
+      - name: Verify archived base corpus and tokenizer provenance
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("data/corpus/merged")
+          corpus = root / "cosmopedia-v2"
+          manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+          tokenizer_manifest = json.loads((root / "tokenizer.json.manifest.json").read_text(encoding="utf-8"))
+
+          def sha256(path):
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for block in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(block)
+              return digest.hexdigest()
+
+          assert manifest["dataset_revision"] == "3ba9d60"
+          assert manifest["dataset_license"] == "ODC-By-1.0"
+          assert len(manifest["shards"]) == 20
+          assert manifest["samples"]["total_characters"] == 199_947_904
+          assert tokenizer_manifest["tokenizer_sha256"] == sha256(root / "tokenizer.json")
+          assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["tokenizer_vocab_size"] == 8192
+          assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
+          for name in ("train.txt", "validation.txt"):
+              assert manifest["files"][name]["sha256"] == sha256(corpus / name)
+          print(json.dumps({
+              "base_revision": manifest["dataset_revision"],
+              "base_license": manifest["dataset_license"],
+              "samples": manifest["samples"],
+              "tokenizer_sha256": tokenizer_manifest["tokenizer_sha256"],
+          }, indent=2))
+          PY
+
+      - name: Build a tree-safe OASST1 English dialogue supplement
+        run: |
+          python -m training.prepare_oasst1_corpus \
+            --base-train data/corpus/merged/cosmopedia-v2/train.txt \
+            --base-validation data/corpus/merged/cosmopedia-v2/validation.txt \
+            --tokenizer data/corpus/merged/tokenizer.json \
+            --output-dir data/corpus/mixed \
+            --dialogue-fraction 0.25 \
+            --validation-percent 5 \
+            --seed 1337
+
+      - name: Train a larger model from random initialization (40.96M token exposures)
+        run: |
+          python -m training.train \
+            --input data/corpus/mixed/train.txt \
+            --validation data/corpus/mixed/validation.txt \
+            --tokenizer data/corpus/merged/tokenizer.json \
+            --output artifacts/base_language/base-language-hard.pt \
+            --token-cache-dir work/token-cache \
+            --metrics-file artifacts/base_language/base-language-hard.metrics.jsonl \
+            --run-metadata artifacts/base_language/base-language-hard.run.json \
+            --steps 40000 \
+            --batch-size 4 \
+            --seq-len 256 \
+            --d-model 192 \
+            --n-layers 4 \
+            --n-heads 4 \
+            --dropout 0.1 \
+            --learning-rate 0.0002 \
+            --weight-decay 0.1 \
+            --eval-interval 2000 \
+            --eval-batches 32 \
+            --eval-seed 2026 \
+            --save-interval 4000 \
+            --seed 2026 \
+            --num-threads 2 \
+            --device cpu
+
+      - name: Export inference-only weights without optimizer state
+        if: success()
+        run: |
+          mkdir -p artifacts/base_language/inference-pilot
+          python - <<'PY'
+          import torch
+          from pathlib import Path
+
+          source = Path("artifacts/base_language/base-language-hard.pt")
+          destination = Path("artifacts/base_language/inference-pilot/model.pt")
+          payload = torch.load(source, map_location="cpu", weights_only=True)
+          payload.pop("optimizer_state", None)
+          torch.save(payload, destination)
+          print(f"inference checkpoint bytes={destination.stat().st_size}")
+          PY
+          cp data/corpus/merged/tokenizer.json artifacts/base_language/inference-pilot/tokenizer.json
+
+      - name: Validate the complete distributable AI payload
+        if: success()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from joseph.config import ModelConfig
+          from training.validate_ai_bundle import validate_ai_bundle
+
+          run = json.loads(Path("artifacts/base_language/base-language-hard.run.json").read_text(encoding="utf-8"))
+          config = ModelConfig.from_dict(run["model_config"])
+          (Path("artifacts/base_language/inference-pilot") / "config.json").write_text(
+              json.dumps(config.to_dict(), indent=2) + "\n", encoding="utf-8"
+          )
+          report = validate_ai_bundle("artifacts/base_language/inference-pilot")
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Generate conversational diagnostic samples
+        if: success()
+        run: |
+          python -m training.generate_samples \
+            --checkpoint artifacts/base_language/base-language-hard.pt \
+            --tokenizer data/corpus/merged/tokenizer.json \
+            --output artifacts/base_language/base-language-hard.samples.md \
+            --max-new-tokens 120 \
+            --temperature 0.8 \
+            --top-k 40 \
+            --seed 2026
+
+      - name: Upload training outputs and recovery checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-base-language-hard-mixed-dialogue
+          path: |
+            artifacts/base_language/base-language-hard.pt
+            artifacts/base_language/base-language-hard.metrics.jsonl
+            artifacts/base_language/base-language-hard.run.json
+            artifacts/base_language/base-language-hard.samples.md
+            artifacts/base_language/inference-pilot/
+            data/corpus/mixed/mixture-report.json
+            data/corpus/mixed/oasst-source-report.json
+          if-no-files-found: ignore
+          compression-level: 6
+          retention-days: 30
