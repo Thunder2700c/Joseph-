@@ -176,23 +176,23 @@ The current workflow was subsequently adjusted in commit `8fb5d6e15b53d5eda3bbc8
 
 The prior failed run [#1 — 20 disjoint Cosmopedia shards](https://github.com/Thunder2700c/Joseph-/actions/runs/41295607839) remains historical only: its merge/tokenizer operations succeeded, but final validation failed from the incorrect tokenizer sidecar name, so it was not the canonical downloadable artifact. Run #2 above fixed that and completed successfully.
 
-No neural base-model weights have been trained. The 10M and 200M outputs are corpora, manifests and project-trained tokenizers only. Tokenizer fitting is not neural language-model training.
+At the time of the earlier corpus-only handoff, no neural base-model weights had been trained; that statement was superseded by the calibration run documented below. The 10M and 200M outputs remain corpus/tokenizer artifacts, distinct from the subsequently trained neural checkpoint.
  
-### First base-language calibration run (2026-11-03)
+### First base-language calibration run (2026-11-03 IST / 2026-11-02 UTC) — COMPLETED
 
-The general-language base model is now entering its first actual random-initialized training experiment. This is a **calibration pilot**, not a finished or conversationally capable model.
+The general-language base model has completed its first actual random-initialized training experiment. This was a **calibration pilot**, not a finished or conversationally capable model. The authoritative measurements and artifact details are recorded in [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md).
 
 - Code commit for the initial training path: `a9edd60ee5ebcc23db468240da4bb8fbaef5ffe5`; follow-up verification/metadata fixes: `97f4dc597281c0141bda61521c4b9e3dc808f2eb` and `816f25bcf92875905812ab5097bb23ce980329dd`.
 - Workflow: [Base language training calibration](https://github.com/Thunder2700c/Joseph-/actions/workflows/train-base-language-pilot.yml).
 - First workflow attempt [41541468461](https://github.com/Thunder2700c/Joseph-/actions/runs/41541468461) downloaded the release successfully, then stopped before training because the workflow read the wrong tokenizer-manifest key. The manifest field is `tokenizer_vocab_size`; this was corrected in the next run.
-- Corrected run: [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443). Inspect its current status and logs before claiming training started or completed.
+- Corrected run: [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443) — completed successfully. The JSONL telemetry, run metadata and checkpoint were downloaded and inspected.
 - Pilot architecture: random initialization, 8,192 vocabulary entries, 128 hidden width, 4 Transformer layers, 4 heads, 128-token context; batch size 8; AdamW learning rate 0.0003 and weight decay 0.1; 1,000 steps × 1,024 tokens per step (1,024,000 optimizer-seen tokens).
-- The calibration model is intentionally modest (about 1.86M parameters). It is a throughput/optimization experiment against the real training split, not the planned final model. If its speed is adequate, later runs can increase training tokens and test model dimensions; if CPU throughput is poor, secure appropriate GPU training compute before attempting a full-corpus run.
+- The calibration model is intentionally modest (1,858,304 parameters). It is a throughput/optimization experiment against the real training split, not the planned final model. It completed 1,000 steps and processed 1,024,000 optimizer token exposures; this is not a full pass over the 41,751,252-token training split.
 - The trainer now writes a JSONL metric history and run metadata, including exact train/validation/tokenizer SHA-256 hashes, vocabulary size, model configuration, validation loss/perplexity, tokens per second, elapsed time, and checkpoint bytes. CUDA runs also record peak allocated VRAM.
 - The reference model now uses PyTorch scaled-dot-product causal attention. The default `ModelConfig.vocab_size` matches the fitted tokenizer's 8,192 vocabulary entries.
 - The tests workflow passed on the initial code commit [41541468527](https://github.com/Thunder2700c/Joseph-/actions/runs/41541468527); later code commits triggered fresh test runs and must be checked before declaring the latest revision fully green.
 
-A successful calibration checkpoint only demonstrates a functioning optimization run. It does not prove general language ability, Hu Tao identity, or readiness for Android. Hu Tao-specific identity/dialogue training remains blocked until former-life stages 1–9 pass substantive review.
+The successful calibration checkpoint only demonstrates a functioning optimization run. It does not prove general language ability, Hu Tao identity, or readiness for Android. Hu Tao-specific identity/dialogue training remains blocked until former-life stages 1–9 pass substantive review.
 
 ## 7. Model status and training direction
 
@@ -200,7 +200,7 @@ A successful calibration checkpoint only demonstrates a functioning optimization
 
 The repository contains a prototype random-initialized decoder-only Transformer, project-trained ByteLevel BPE tokenizer pipeline, streamed text-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities. The complete distributable AI payload is strictly capped at 1,000,000,000 bytes; no pretrained model weights or external AI models may be used.
 
-Current default configuration in `joseph/config.py` is a reference baseline with vocabulary size 8,192 (matching the fitted tokenizer), model width 256, 6 layers, 8 attention heads and 256-token context. It is approximately 6.90 million parameters and starts from random initialization. The separate first calibration experiment uses 128 width, 4 layers and 4 heads (approximately 1.86 million parameters). Neither configuration is yet a plausible finished conversational model. **There is no completed base-model checkpoint or capable Hu Tao checkpoint yet; the first calibration optimizer run is currently in progress.**
+Current default configuration in `joseph/config.py` is a reference baseline with vocabulary size 8,192 (matching the fitted tokenizer), model width 256, 6 layers, 8 attention heads and 256-token context. It is approximately 6.90 million parameters and starts from random initialization. The separate first calibration experiment used 128 width, 4 layers and 4 heads (1,858,304 parameters) and produced a completed pilot checkpoint. Neither configuration is a plausible finished conversational model. **A calibration base-model checkpoint exists, but there is no capable general-language foundation model or Hu Tao character checkpoint yet.**
 
 ### Required training philosophy
 
