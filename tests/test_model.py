@@ -101,6 +101,52 @@ class ModelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             model(inputs, targets, torch.zeros((1, 8), dtype=torch.bool))
 
+    def test_generation_stops_at_end_of_turn(self):
+        config = ModelConfig(
+            vocab_size=270, d_model=32, n_layers=1, n_heads=4,
+            block_size=16, dropout=0.0,
+        )
+        model = JosephLanguageModel(config)
+        inputs = torch.randint(0, config.vocab_size, (1, 3))
+
+        def emit_eot(token_ids, targets=None, loss_mask=None):
+            logits = torch.zeros(
+                token_ids.size(0), token_ids.size(1), config.vocab_size
+            )
+            logits[:, :, 10] = 10.0
+            return logits, None
+
+        with patch.object(model, "forward", side_effect=emit_eot):
+            generated = model.generate(
+                inputs, max_new_tokens=10, temperature=0,
+                stop_token_ids=[10], pad_token_id=0,
+            )
+        self.assertEqual(tuple(generated.shape), (1, 4))
+        self.assertEqual(int(generated[0, -1]), 10)
+
+    def test_generation_forbids_structural_tokens(self):
+        config = ModelConfig(
+            vocab_size=270, d_model=32, n_layers=1, n_heads=4,
+            block_size=16, dropout=0.0,
+        )
+        model = JosephLanguageModel(config)
+        inputs = torch.randint(0, config.vocab_size, (1, 3))
+
+        def emit_forbidden(token_ids, targets=None, loss_mask=None):
+            logits = torch.zeros(
+                token_ids.size(0), token_ids.size(1), config.vocab_size
+            )
+            logits[:, :, 6] = 10.0
+            logits[:, :, 7] = 5.0
+            return logits, None
+
+        with patch.object(model, "forward", side_effect=emit_forbidden):
+            generated = model.generate(
+                inputs, max_new_tokens=1, temperature=0,
+                forbidden_token_ids=[6], pad_token_id=0,
+            )
+        self.assertEqual(int(generated[0, -1]), 7)
+
     def test_logits_loss_and_generation_shapes(self):
         config = ModelConfig(
             vocab_size=270, d_model=32, n_layers=1, n_heads=4,
