@@ -156,6 +156,11 @@ def write_corpus(
 
     manifest = {
         "format": "hutao-fineweb-edu-corpus-shard-v1",
+        "shard": {
+            "count": shard_count,
+            "index": shard_index,
+            "method": "IterableDataset.shard before per-shard shuffle",
+        },
         "dataset_id": DATASET_ID,
         "dataset_config": DATASET_CONFIG,
         "dataset_revision": DATASET_REVISION,
