@@ -85,14 +85,33 @@ def merge_corpus_shards(
         elif validation_percent != current_validation_percent:
             raise ValueError("validation percentage differs between acquisition shards")
 
+        selection_fields = manifest.get("selection", {})
+        filter_policy = {
+            key: selection_fields.get(key)
+            for key in (
+                "max_samples",
+                "max_characters",
+                "min_characters",
+                "max_document_characters",
+                "min_language_score",
+                "min_educational_score",
+                "min_source_tokens",
+                "max_source_tokens",
+                "validation_percent",
+            )
+            if key in selection_fields
+        }
         fields = {
             "dataset_id": manifest.get("dataset_id"),
             "dataset_config": manifest.get("dataset_config"),
             "dataset_revision": manifest.get("dataset_revision"),
             "dataset_license": manifest.get("dataset_license"),
             "dataset_card": manifest.get("dataset_card"),
+            "license_note": manifest.get("license_note"),
             "selected_field": manifest.get("selected_field"),
+            "filter_fields": manifest.get("filter_fields"),
             "excluded_fields": manifest.get("excluded_fields"),
+            "filter_policy": filter_policy,
         }
         if common_fields is None:
             common_fields = fields
@@ -199,6 +218,7 @@ def merge_corpus_shards(
             "global_deduplication": "sha256(normalized_text.casefold())",
             "split_method": "sha256(normalized_text.casefold()) modulo 100",
             "shard_partitioning": "disjoint IterableDataset.shard partitions before shuffle",
+            "source_shard_prefix": shard_prefix,
         },
         "samples": {
             "train": sample_counts["train"],
