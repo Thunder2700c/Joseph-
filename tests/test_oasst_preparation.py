@@ -42,6 +42,8 @@ class OASSTPreparationTests(unittest.TestCase):
         self.assertEqual(len(train) + len(validation), 40)
         self.assertEqual(report["train_validation_tree_overlap"], 0)
         self.assertTrue(all("Here is a clear explanation." in sample for sample in train + validation))
+        self.assertTrue(all("<|assistant|>" in sample for sample in train + validation))
+        self.assertTrue(all("<|eot|>" in sample for sample in train + validation))
         self.assertFalse(any("lower-ranked alternative" in sample for sample in train + validation))
 
     def test_synthetic_messages_are_excluded(self):
@@ -58,6 +60,7 @@ class OASSTPreparationTests(unittest.TestCase):
         self.assertTrue(validation)
         self.assertTrue(all("Synthetic reply must not enter." not in sample for sample in all_samples))
         self.assertGreater(report["rejected_message_reasons"].get("synthetic_or_unknown", 0), 0)
+        self.assertTrue(all("<|assistant|>" in sample for sample in all_samples))
 
 
 if __name__ == "__main__":
