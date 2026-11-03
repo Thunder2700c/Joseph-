@@ -90,9 +90,12 @@ class TrainingCliSmokeTests(unittest.TestCase):
                 continuation.returncode, 0,
                 msg=continuation.stdout + continuation.stderr,
             )
-            self.assertIn("Warm-starting from project checkpoint step 2", continuation.stdout)
+            self.assertIn("Continuing project checkpoint step 2", continuation.stdout)
             continued_payload = load_checkpoint(continued_output)
             self.assertEqual(continued_payload["step"], 3)
+            self.assertIn("optimizer_state", continued_payload)
+            run_metadata = json.loads((root / "continued.pt.run.json").read_text(encoding="utf-8"))
+            self.assertEqual(run_metadata["optimizer_state"], "restored_adamw_state")
 
 
 if __name__ == "__main__":
