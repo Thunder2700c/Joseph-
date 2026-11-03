@@ -2,12 +2,7 @@ name: Base language foundation continuation
 run-name: Warm-start existing project checkpoint for 10.24M additional token exposures
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/train-base-language-pilot.yml"
   workflow_dispatch:
-
 permissions:
   actions: read
   contents: read
@@ -17,7 +12,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-base-corpus:
+    uses: ./.github/workflows/build-base-corpus.yml
+
   train-calibration-pilot:
+    needs: build-base-corpus
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
@@ -35,18 +34,13 @@ jobs:
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install "tokenizers>=0.21,<1"
 
-      - name: Download the archived 200M training corpus and tokenizer
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p data/corpus
-          gh release download joseph-base-corpus-merged-200m-2026-11-02 \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern joseph-cosmopedia-v2-merged-200m-tokenizer.zip \
-            --dir data/corpus
-          unzip -q data/corpus/joseph-cosmopedia-v2-merged-200m-tokenizer.zip -d data/corpus/merged
+      - name: Download the verified corpus and tokenizer from this workflow run
+        uses: actions/download-artifact@v4
+        with:
+          name: joseph-cosmopedia-v2-merged-200m-tokenizer
+          path: data/corpus/merged
 
-      - name: Verify the source corpus and tokenizer hashes
+      - name: Verify the rebuilt source corpus and tokenizer hashes
         run: |
           python - <<'PY'
           import hashlib
