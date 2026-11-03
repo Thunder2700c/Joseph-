@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import numbers
 import re
 from pathlib import Path
 from typing import Iterable
@@ -23,6 +24,8 @@ DATASET_CARD = (
     "https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu/"
     "tree/87f09149ef4734204d70ed1d046ddc9ca3f2b8f9"
 )
+EMAIL_PATTERN = re.compile(r"\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", re.IGNORECASE)
+US_SSN_PATTERN = re.compile(r"\\b\\d{3}-\\d{2}-\\d{4}\\b")
 LICENSE_NOTE = (
     "The dataset card declares ODC-By 1.0. FineWeb-Edu is filtered from Common Crawl; "
     "the dataset card also states that Common Crawl terms of use apply. This project "
@@ -101,15 +104,15 @@ def write_corpus(
                 reject("not_english")
                 continue
             language_score = row.get("language_score")
-            if not isinstance(language_score, (int, float)) or float(language_score) < min_language_score:
+            if not isinstance(language_score, numbers.Real) or float(language_score) < min_language_score:
                 reject("language_score_below_threshold")
                 continue
             educational_score = row.get("int_score")
-            if not isinstance(educational_score, int) or educational_score < min_educational_score:
+            if not isinstance(educational_score, numbers.Integral) or int(educational_score) < min_educational_score:
                 reject("educational_score_below_threshold")
                 continue
             source_tokens = row.get("token_count")
-            if not isinstance(source_tokens, int) or not min_source_tokens <= source_tokens <= max_source_tokens:
+            if not isinstance(source_tokens, numbers.Integral) or not min_source_tokens <= int(source_tokens) <= max_source_tokens:
                 reject("source_token_count_out_of_range")
                 continue
 
@@ -120,6 +123,12 @@ def write_corpus(
             sample = normalize(raw)
             if len(sample) < min_characters or len(sample) > max_document_characters:
                 reject("document_character_length_out_of_range")
+                continue
+            # A lightweight precaution against obvious contact/identifier
+            # strings. It is not a comprehensive PII detector or guarantee.
+            digit_count = sum(character.isdigit() for character in sample)
+            if EMAIL_PATTERN.search(sample) or US_SSN_PATTERN.search(sample) or digit_count >= 10:
+                reject("obvious_pii_pattern")
                 continue
             if total_characters + len(sample) > max_characters:
                 reject("would_exceed_character_cap")
@@ -167,6 +176,7 @@ def write_corpus(
             "min_educational_score": min_educational_score,
             "min_source_tokens": min_source_tokens,
             "max_source_tokens": max_source_tokens,
+            "obvious_pii_patterns_filtered": ["email", "US SSN", "10-or-more digits per document"],
             "validation_percent": validation_percent,
             "split_method": "sha256(normalized_text.casefold()) modulo 100",
             "deduplication": "sha256(normalized_text.casefold()) within each source shard; global deduplication at merge",
