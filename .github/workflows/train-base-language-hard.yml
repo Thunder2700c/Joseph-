@@ -87,14 +87,14 @@ jobs:
           }, indent=2))
           PY
 
-      - name: Build a tree-safe OASST1 English dialogue supplement
+      - name: Build reviewed OASST1 and human-authored Dolly dialogue supplement
         run: |
-          python -m training.prepare_oasst1_corpus \
+          python -m training.prepare_dialogue_corpus \
             --base-train data/corpus/merged/cosmopedia-v2/train.txt \
             --base-validation data/corpus/merged/cosmopedia-v2/validation.txt \
             --tokenizer data/corpus/merged/tokenizer.json \
             --output-dir data/corpus/mixed \
-            --dialogue-fraction 0.25 \
+            --dialogue-fraction 0.35 \
             --validation-percent 5 \
             --seed 1337
 
@@ -184,7 +184,8 @@ jobs:
             artifacts/base_language/base-language-hard.samples.md
             artifacts/base_language/inference-pilot/
             data/corpus/mixed/mixture-report.json
-            data/corpus/mixed/oasst-source-report.json
+            data/corpus/mixed/dialogue-source-report.json
+            data/corpus/mixed/dialogue-attribution.md
           if-no-files-found: ignore
           compression-level: 6
           retention-days: 30
