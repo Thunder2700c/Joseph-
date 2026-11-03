@@ -22,11 +22,12 @@ def save_checkpoint(
 ) -> int:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    source_model = model.module if isinstance(model, torch.nn.DataParallel) else model
     payload = {
         "format": "joseph-state-v1",
         "config": config.to_dict(),
         "step": int(step),
-        "model_state": model.state_dict(),
+        "model_state": source_model.state_dict(),
     }
     if optimizer is not None:
         payload["optimizer_state"] = optimizer.state_dict()
