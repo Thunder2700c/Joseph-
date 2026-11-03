@@ -159,6 +159,8 @@ class JosephLanguageModel(nn.Module):
         top_k: int | None = 40,
         eos_token_id: int | None = None,
         pad_token_id: int | None = None,
+        stop_token_ids: list[int] | None = None,
+        forbidden_token_ids: list[int] | None = None,
     ) -> torch.Tensor:
         if temperature < 0:
             raise ValueError("temperature cannot be negative")
@@ -168,6 +170,15 @@ class JosephLanguageModel(nn.Module):
             raise ValueError("eos_token_id is outside the model vocabulary")
         if pad_token_id is not None and not 0 <= pad_token_id < self.config.vocab_size:
             raise ValueError("pad_token_id is outside the model vocabulary")
+        stop_ids = set(stop_token_ids or [])
+        if eos_token_id is not None:
+            stop_ids.add(eos_token_id)
+        forbidden_ids = set(forbidden_token_ids or [])
+        for token_id in stop_ids | forbidden_ids:
+            if not 0 <= token_id < self.config.vocab_size:
+                raise ValueError("generation control token is outside the model vocabulary")
+        if stop_ids & forbidden_ids:
+            raise ValueError("a token cannot be both a stop token and forbidden")
 
         finished = torch.zeros(token_ids.size(0), dtype=torch.bool, device=token_ids.device)
         finished_pad_id = (
@@ -178,6 +189,14 @@ class JosephLanguageModel(nn.Module):
         for _ in range(max_new_tokens):
             logits, _ = self(token_ids[:, -self.config.block_size :])
             next_logits = logits[:, -1, :]
+            if forbidden_ids:
+                forbidden_index = torch.tensor(
+                    sorted(forbidden_ids), dtype=torch.long, device=next_logits.device
+                )
+                next_logits = next_logits.clone()
+                next_logits.index_fill_(1, forbidden_index, torch.finfo(next_logits.dtype).min)
+            if not torch.isfinite(next_logits).any(dim=-1).all():
+                raise RuntimeError("generation constraints removed every possible next token")
             if temperature == 0:
                 next_token = torch.argmax(next_logits, dim=-1, keepdim=True)
             else:
@@ -197,8 +216,11 @@ class JosephLanguageModel(nn.Module):
                 next_token = torch.where(was_finished[:, None], fill, next_token)
             token_ids = torch.cat((token_ids, next_token), dim=1)
 
-            if eos_token_id is not None:
-                finished |= next_token.squeeze(-1).eq(eos_token_id)
+            if stop_ids:
+                token_is_stop = torch.zeros_like(finished)
+                for token_id in stop_ids:
+                    token_is_stop |= next_token.squeeze(-1).eq(token_id)
+                finished |= token_is_stop
                 if bool(finished.all()):
                     break
         return token_ids
