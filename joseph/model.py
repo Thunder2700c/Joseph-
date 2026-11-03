@@ -114,22 +114,40 @@ class JosephLanguageModel(nn.Module):
         self,
         token_ids: torch.Tensor,
         targets: torch.Tensor | None = None,
+        loss_mask: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
         if token_ids.ndim != 2:
             raise ValueError("token_ids must have shape [batch, sequence]")
         batch, length = token_ids.shape
         if length > self.config.block_size:
             raise ValueError("input sequence exceeds configured block_size")
+        if targets is not None and tuple(targets.shape) != (batch, length):
+            raise ValueError("targets must have the same [batch, sequence] shape as token_ids")
+        if loss_mask is not None:
+            if targets is None:
+                raise ValueError("loss_mask requires targets")
+            if tuple(loss_mask.shape) != (batch, length):
+                raise ValueError("loss_mask must have the same [batch, sequence] shape as targets")
+
         positions = torch.arange(length, device=token_ids.device)
         x = self.token_embedding(token_ids) + self.position_embedding(positions)[None, :, :]
         x = self.embedding_dropout(x)
         logits = self.lm_head(self.final_norm(self.blocks(x)))
         loss = None
         if targets is not None:
-            loss = F.cross_entropy(
+            token_losses = F.cross_entropy(
                 logits.reshape(batch * length, self.config.vocab_size),
                 targets.reshape(batch * length),
-            )
+                reduction="none",
+            ).view(batch, length)
+            if loss_mask is None:
+                loss = token_losses.mean()
+            else:
+                mask = loss_mask.to(device=token_losses.device, dtype=token_losses.dtype)
+                denominator = mask.sum()
+                if not torch.isfinite(denominator) or denominator.item() <= 0:
+                    raise ValueError("loss_mask must select at least one target token")
+                loss = (token_losses * mask).sum() / denominator
         return logits, loss
 
     @torch.no_grad()
