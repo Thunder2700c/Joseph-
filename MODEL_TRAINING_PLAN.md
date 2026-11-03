@@ -25,9 +25,13 @@ Do not switch to Android development during steps 1–6.
 
 ## Current model prototype — not a finished model
 
-The current default `ModelConfig` is a random-initialized reference baseline with 8,192 vocabulary entries (matching the fitted tokenizer), 256-dimensional hidden state, 6 Transformer layers, 8 attention heads, 256-token context and a 1 GB maximum checkpoint/weight budget. It is approximately 6.90M parameters, but it is not yet a plausible finished conversational model. The project-trained Rust-backed ByteLevel BPE tokenizer has now been fitted on the merged 200M corpus with 8,192 vocabulary entries and ten reserved control IDs, including `<|user|>` and `<|hutao|>`. The full Cosmopedia v2 corpus contains 199,947,904 characters from 20 verified partitions, with train/validation integrity and file hashes checked; it is permanently archived in the linked GitHub Release documented in CONTINUATION_CONTEXT.md. The disk-backed int32 token-cache pipeline and training loop exist, and the first calibration optimizer run is currently in progress; **no completed base-model checkpoint has been verified yet**.
+The reference/default `ModelConfig` remains a random-initialized baseline with 8,192 vocabulary entries, 256-dimensional hidden state, 6 Transformer layers, 8 attention heads and 256-token context (approximately 6.90M parameters). The first completed CPU calibration experiment used a separate smaller configuration: 8,192 vocabulary entries, 128-dimensional hidden state, 4 layers, 4 heads and 128-token context (1,858,304 parameters).
 
-The corpus and tokenizer are now verified and permanently archived. A 1.86M-parameter CPU calibration run is currently in progress with random initialization and a held-out validation split. It is intentionally a throughput/optimization pilot, not the final architecture or a claim of usable conversation. A small randomly initialized model is not yet capable of the intended conversation. Loss reduction alone is not enough.
+The project-trained Rust-backed ByteLevel BPE tokenizer has 8,192 vocabulary entries and ten reserved control IDs, including `<|user|>` and `<|hutao|>`. The Cosmopedia v2 general-language corpus contains 199,947,904 characters from 20 verified partitions and is permanently archived. The disk-backed int32 token-cache pipeline and random-initialized training loop are operational.
+
+**First base-language calibration pilot: completed successfully** in GitHub Actions run [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443). The measured-results record is [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md). At step 1,000, evaluated training loss was 7.7335, validation loss 7.8389, training perplexity 2,283.62, validation perplexity 2,537.51, average loop throughput 6,219.78 tokens/sec, elapsed training-loop time 164.64 seconds, and checkpoint size 7,454,309 bytes. The run processed 1,024,000 optimizer token exposures.
+
+This is only a calibration/optimization pilot, not the completed general-language foundation or a claim of conversational competence. The validation perplexity remains very high, and 1.024M token exposures are not a full epoch over the 41.75M-token training split. Continue controlled base-language experiments and qualitative held-out evaluation. Loss reduction or checkpoint creation alone is not success.
 
 ## Phase A — finish the source and memory foundation
 
@@ -82,6 +86,8 @@ The current `training/train.py` uses disk-backed int32 token caches and samples 
 - sample generations at regular checkpoints;
 - throughput, wall-clock time, peak memory and checkpoint size;
 - reproducibility from stored config, tokenizer and data hashes.
+
+The first calibration result is recorded in [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md). It verifies the training path and provides a measured CPU throughput baseline; it does not complete the base-language phase.
 
 Do not mistake memorisation of the corpus for language competence. Keep a held-out evaluation set from domains not copied verbatim into training. If the compute or corpus budget is inadequate, resize the model/training plan honestly rather than announcing success.
 
