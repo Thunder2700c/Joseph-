@@ -194,13 +194,30 @@ The general-language base model has completed its first actual random-initialize
 
 The successful calibration checkpoint only demonstrates a functioning optimization run. It does not prove general language ability, Hu Tao identity, or readiness for Android. Hu Tao-specific identity/dialogue training remains blocked until former-life stages 1–9 pass substantive review.
 
+### Second base-language experiment — warm-start continuation (2026-11-03) — COMPLETED
+
+The 1.86M-parameter calibration checkpoint was restored after SHA-256 and exact architecture checks, then trained for 10,000 additional steps. The checkpoint did not contain AdamW optimizer state, so the continuation used a fresh AdamW optimizer; this was accurately recorded as a warm-start, not an exact resume.
+
+- Run [41594999963](https://github.com/Thunder2700c/Joseph-/actions/runs/41594999963) completed successfully. The parent checkpoint was verified and loaded. All training, validation, bundle validation, generation-sample and artifact-upload steps passed.
+- Additional optimizer token exposures: 10,240,000. Combined with the first pilot: 11,264,000 exposures. Global checkpoint step: 11,000.
+- Final sampled training/validation loss: 7.2779 / 7.2709. Training/validation perplexity: 1,447.98 / 1,437.87.
+- Average CPU throughput: 5,772.17 tokens/sec; training-loop elapsed time: 1,774.03 sec; checkpoint size: 7,454,541 bytes.
+- Complete experimental inference bundle: 8,014,978 bytes, below the 1,000,000,000-byte limit.
+- Artifact [joseph-base-language-continuation-10m.zip](https://github.com/Thunder2700c/Joseph-/actions/runs/41594999963/artifacts/13213295962), ID `13213295962`, retained for 30 days.
+- Three diagnostic continuations were generated. Inspection found them mostly incoherent, repetitive and fragmented. Language competence has **not** passed. Falling validation loss is not enough.
+- Separate CI run [41595104438](https://github.com/Thunder2700c/Joseph-/actions/runs/41595104438) passed: 56 tests and Python-module compilation.
+
+Full measurements, progression, SHA-256 values, bundle validation and interpretation: [reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md](reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md).
+
+Hu Tao-specific identity/dialogue training remains blocked until former-life stages 1–9 pass substantive review. This continuation used only the general-language Cosmopedia corpus and did not train Hu Tao's personality or biography.
+
 ## 7. Model status and training direction
 
 ### Current code status
 
 The repository contains a prototype random-initialized decoder-only Transformer, project-trained ByteLevel BPE tokenizer pipeline, streamed text-corpus acquisition, disk-backed token-cache preparation, training loop and checkpoint utilities. The complete distributable AI payload is strictly capped at 1,000,000,000 bytes; no pretrained model weights or external AI models may be used.
 
-Current default configuration in `joseph/config.py` is a reference baseline with vocabulary size 8,192 (matching the fitted tokenizer), model width 256, 6 layers, 8 attention heads and 256-token context. It is approximately 6.90 million parameters and starts from random initialization. The separate first calibration experiment used 128 width, 4 layers and 4 heads (1,858,304 parameters) and produced a completed pilot checkpoint. Neither configuration is a plausible finished conversational model. **A calibration base-model checkpoint exists, but there is no capable general-language foundation model or Hu Tao character checkpoint yet.**
+Current default configuration in `joseph/config.py` is a reference baseline with vocabulary size 8,192 (matching the fitted tokenizer), model width 256, 6 layers, 8 attention heads and 256-token context. It is approximately 6.90 million parameters and starts from random initialization. The separate 1.86M-parameter model has now completed an initial pilot and a 10,000-step warm-start continuation, producing a global step-11,000 checkpoint. Its diagnostic generations remain incoherent. **The project has a trained experimental general-language checkpoint, but no accepted general-language foundation and no Hu Tao character checkpoint.**
 
 ### Required training philosophy
 
