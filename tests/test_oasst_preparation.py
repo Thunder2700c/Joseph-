@@ -45,14 +45,17 @@ class OASSTPreparationTests(unittest.TestCase):
         self.assertFalse(any("lower-ranked alternative" in sample for sample in train + validation))
 
     def test_synthetic_messages_are_excluded(self):
-        rows = [
-            make_row("tree-a", "root-a", None, "prompter", "Please explain this clearly."),
-            make_row("tree-a", "reply-a", "root-a", "assistant", "This is an approved human reply.", rank=0),
-            make_row("tree-b", "root-b", None, "prompter", "Please explain this synthetic test."),
-            make_row("tree-b", "reply-b", "root-b", "assistant", "Synthetic reply must not enter.", rank=0, synthetic=True),
-        ]
+        rows = []
+        for index in range(40):
+            tree = f"tree-{index}"
+            root = f"{tree}-root"
+            rows.append(make_row(tree, root, None, "prompter", "Please explain this clearly."))
+            rows.append(make_row(tree, f"{tree}-human", root, "assistant", "This is an approved human reply.", rank=0))
+            rows.append(make_row(tree, f"{tree}-synthetic", root, "assistant", "Synthetic reply must not enter.", rank=1, synthetic=True))
         train, validation, report = conversation_samples(rows, validation_percent=50)
         all_samples = train + validation
+        self.assertTrue(train)
+        self.assertTrue(validation)
         self.assertTrue(all("Synthetic reply must not enter." not in sample for sample in all_samples))
         self.assertGreater(report["rejected_message_reasons"].get("synthetic_or_unknown", 0), 0)
 
