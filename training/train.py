@@ -41,21 +41,46 @@ def open_token_stream(path: str | Path, token_count: int) -> torch.Tensor:
     )
 
 
+def open_loss_mask(path: str | Path, token_count: int) -> torch.Tensor:
+    if token_count < 1:
+        raise ValueError("token_count must be positive")
+    actual_bytes = Path(path).stat().st_size
+    if actual_bytes != token_count:
+        raise ValueError(
+            f"loss-mask size mismatch for {path}: expected {token_count} bytes, got {actual_bytes}"
+        )
+    return torch.from_file(
+        str(path), shared=False, size=token_count, dtype=torch.uint8
+    )
+
+
 def get_batch(
     data: torch.Tensor,
     batch_size: int,
     seq_len: int,
     device: str,
     generator: torch.Generator | None = None,
-) -> tuple[torch.Tensor, torch.Tensor]:
+    loss_masks: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
     if data.numel() <= seq_len + 1:
         raise ValueError(f"token stream needs more than {seq_len + 1} tokens")
+    if loss_masks is not None and loss_masks.numel() != data.numel():
+        raise ValueError("token stream and loss-mask lengths must match")
     starts = torch.randint(0, data.numel() - seq_len - 1, (batch_size,), generator=generator)
     x = torch.stack([data[int(start):int(start) + seq_len] for start in starts])
     y = torch.stack([
         data[int(start) + 1:int(start) + seq_len + 1] for start in starts
     ])
-    return x.to(device=device, dtype=torch.long), y.to(device=device, dtype=torch.long)
+    mask = None
+    if loss_masks is not None:
+        mask = torch.stack([
+            loss_masks[int(start) + 1:int(start) + seq_len + 1] for start in starts
+        ]).to(device=device, dtype=torch.bool)
+    return (
+        x.to(device=device, dtype=torch.long),
+        y.to(device=device, dtype=torch.long),
+        mask,
+    )
 
 
 @torch.no_grad()
@@ -63,6 +88,8 @@ def estimate_loss(
     model: JosephLanguageModel,
     train_data: torch.Tensor,
     validation_data: torch.Tensor | None,
+    train_loss_mask: torch.Tensor,
+    validation_loss_mask: torch.Tensor | None,
     batch_size: int,
     seq_len: int,
     eval_batches: int,
@@ -77,8 +104,12 @@ def estimate_loss(
         losses = []
         generator = torch.Generator(device="cpu").manual_seed(eval_seed + split_index)
         for _ in range(eval_batches):
-            x, y = get_batch(data, batch_size, seq_len, device, generator=generator)
-            _, loss = model(x, y)
+            current_mask = train_loss_mask if name == "train" else validation_loss_mask
+            x, y, batch_mask = get_batch(
+                data, batch_size, seq_len, device,
+                generator=generator, loss_masks=current_mask,
+            )
+            _, loss = model(x, y, batch_mask)
             losses.append(float(loss.item()))
         mean_loss = sum(losses) / len(losses)
         metrics[f"{name}_loss"] = mean_loss
@@ -173,6 +204,12 @@ def main() -> None:
     validation_data = open_token_stream(
         validation_cache, validation_manifest["token_count"]
     )
+    train_loss_mask = open_loss_mask(
+        train_manifest["loss_mask_file"], train_manifest["token_count"]
+    )
+    validation_loss_mask = open_loss_mask(
+        validation_manifest["loss_mask_file"], validation_manifest["token_count"]
+    )
 
     config = ModelConfig(
         vocab_size=tokenizer.vocab_size,
@@ -247,6 +284,11 @@ def main() -> None:
         "tokenizer_vocab_size": tokenizer.vocab_size,
         "train_token_count": train_manifest["token_count"],
         "validation_token_count": validation_manifest["token_count"],
+        "train_loss_target_count": train_manifest["selected_target_count"],
+        "validation_loss_target_count": validation_manifest["selected_target_count"],
+        "train_dialogue_sample_count": train_manifest["dialogue_sample_count"],
+        "validation_dialogue_sample_count": validation_manifest["dialogue_sample_count"],
+        "loss_policy": train_manifest["loss_policy"],
         "model_config": config.to_dict(),
         "estimated_parameters": config.estimated_parameter_count(),
         "estimated_fp32_weight_bytes": config.estimated_weight_bytes(),
@@ -296,9 +338,12 @@ def main() -> None:
     model.train()
 
     for step in range(1, args.steps + 1):
-        x, y = get_batch(train_data, args.batch_size, args.seq_len, device)
+        x, y, batch_mask = get_batch(
+            train_data, args.batch_size, args.seq_len, device,
+            loss_masks=train_loss_mask,
+        )
         optimizer.zero_grad(set_to_none=True)
-        _, loss = model(x, y)
+        _, loss = model(x, y, batch_mask)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
