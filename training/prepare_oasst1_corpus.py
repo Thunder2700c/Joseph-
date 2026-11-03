@@ -217,7 +217,7 @@ def conversation_samples(rows: list[dict[str, Any]], validation_percent: int = 5
                 if item["role"] == "prompter":
                     parts.append("<|user|> " + body)
                 else:
-                    parts.append("Assistant: " + body)
+                    parts.append("<|assistant|> " + body + " <|eot|>")
             sample = " ".join(parts)
             if len(sample) >= 32:
                 tree_samples.append(sample)
