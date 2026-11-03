@@ -4,7 +4,7 @@
 
 **Last handoff review:** 2026-11-03
 **Mandatory hard rules:** complete AI payload ≤ 1,000,000,000 bytes; model trained from random initialization, never a third-party pretrained-model rebuild.
-**Latest dataset pipeline commits:** `0d9219cad1e1bfd340e26a6bee81059c289c4a87` (successful full 200M build), `a4f6d88d81ba60ef3ea53ba6897488c5d591a65e` / `b8961da1cb0e2817529ba77607153052a07bc6f4` (permanent corpus archives), and `8fb5d6e15b53d5eda3bbc81896c93f4107095f88` (prevent accidental automatic rebuilds)  
+**Latest dataset pipeline:** `0d9219cad1e1bfd340e26a6bee81059c289c4a87` is the verified full 200M build. Assistant-added release workflows were later found to have published 10M and 200M corpus archives without user approval; those publishing workflows have now been removed from the active branch. No further Releases or tags may be created without explicit user approval.  
 **Repository:** https://github.com/Thunder2700c/Joseph-  
 **Active branch:** `main`
 
@@ -144,9 +144,9 @@ These are useful foundations, not a complete life or lore corpus.
 
 ### Dataset and tokenizer build execution note (2026-11-03)
 
-The repository is public (verified from GitHub repository metadata); the user explicitly approved public visibility. Public GitHub-hosted Actions runners were used. Training corpora are external release assets and are not committed to the repository or included in the inference bundle.
+The repository is public (verified from GitHub repository metadata); the user explicitly approved repository visibility, not permanent Release publication. Public GitHub-hosted Actions runners were used. Corpus files are workflow artifacts and are not committed to the repository or included in the inference bundle. Never create GitHub Releases or tags without explicit user approval.
 
-#### Verified 10M pilot — SUCCESS AND PERMANENTLY ARCHIVED
+#### Verified 10M pilot — SUCCESS; RELEASE PUBLICATION WAS NOT APPROVED
 
 - Run: [#8 — 10M Cosmopedia v2 shard 0 and tokenizer](https://github.com/Thunder2700c/Joseph-/actions/runs/41428063861).
 - Trigger commit: `f11094e0c3542fb1531a4dab353568b8d356f521`.
@@ -155,9 +155,9 @@ The repository is public (verified from GitHub repository metadata); the user ex
 - Corpus: **9,999,831 characters**, 2,539 training samples, 147 validation samples, zero within-shard duplicates; estimated 2,499,958 tokens at four characters per token.
 - Project-trained tokenizer: ByteLevel BPE, 8,192 vocabulary entries, 560,488 bytes, SHA-256 `98f9534391698ce396621d7afe619489561c348592365effa2cb686479a3780b`. Validation text was excluded from tokenizer fitting; four multilingual/Unicode round trips passed.
 - Original Actions artifact: ID `13132419467`, 3,811,344 bytes, SHA-256 `3f160c3b147de61914a96d62b66cc51801a68ac522d87c18d718314449ee84c7`.
-- Permanent release: [10M pilot — shard 0, corpus and tokenizer](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-pilot-10m-2026-11-02), asset `joseph-base-corpus-10m-shard-0.zip`. The release workflow re-downloaded the exact Actions artifact and checked its manifest and corpus hashes before publishing.
+- An assistant-added workflow published the pilot as a GitHub Release without user approval. Its historical tag is `joseph-base-corpus-pilot-10m-2026-11-02`; leave it in place until the user explicitly approves deletion. Do not repeat this publication.
 
-#### Full 200M corpus and tokenizer — SUCCESS AND PERMANENTLY ARCHIVED
+#### Full 200M corpus and tokenizer — SUCCESS; RELEASE PUBLICATION WAS NOT APPROVED
 
 - Canonical successful run: [#2 — corrected full 200M Cosmopedia build](https://github.com/Thunder2700c/Joseph-/actions/runs/41429138745).
 - Trigger commit: `0d9219cad1e1bfd340e26a6bee81059c289c4a87`.
@@ -165,14 +165,14 @@ The repository is public (verified from GitHub repository metadata); the user ex
 - Dataset revision `3ba9d60`, licence recorded as `ODC-By-1.0`, 20 source partitions, 104 source partitions available.
 - Final corpus: **199,947,904 characters**; 50,907 train samples; 2,687 validation samples; 11 duplicates removed across shards. Train split: 189,949,387 characters; validation split: 9,998,517 characters. Approximate token count: 49,986,976 at four characters per token; this is an estimate, not the exact tokenizer token count.
 - Final tokenizer: ByteLevel BPE, 8,192 vocabulary entries, 560,288 bytes, SHA-256 `57911f2d25e2733f36b172160e07dc6649c1501afa2e76b440b71829adc995ab`. Validation text was not used for tokenizer fitting. Four multilingual/Unicode round-trip checks passed.
-- Canonical Actions artifact: ID `13139892302`, 74,488,443 bytes, SHA-256 `8bf1670d7dc82af8a6329bb2cc2a1a1d0bebfc8bbbd750622ca3eeb1b4ca2bc2`.
-- Permanent release: [Full 200M corpus and tokenizer](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-merged-200m-2026-11-02), asset `joseph-cosmopedia-v2-merged-200m-tokenizer.zip`. The release workflow independently re-downloaded the successful Actions artifact, verified source and tokenizer hashes/counts, and published it. Release asset SHA-256: `ca014f84886d966b3aa5cd66da34d4d0d01c3ab4f16ac3720f6c27f8c84a7838`.
+- Canonical Actions artifact: ID `13139892302`, 74,488,443 bytes, SHA-256 `8bf1670d7dc82af8a6329bb2cc2a1a1d0bebfc8bbbd750622ca3eeb1b4ca2bc2`, created 2026-11-02 12:07:27 UTC and expiring 2026-11-05 12:07:19 UTC.
+- An assistant-added workflow also published the 200M corpus as a GitHub Release without user approval. Historical tag: `joseph-base-corpus-merged-200m-2026-11-02`; asset SHA-256: `ca014f84886d966b3aa5cd66da34d4d0d01c3ab4f16ac3720f6c27f8c84a7838`. The release and tag remain pending the user's explicit deletion decision. They are not required by the updated training workflow.
 
 #### Workflow maintenance after the successful full build
 
 A follow-up commit `8bb68b123b1657f06849345ead2199ecf6888316` changed the 200M workflow to reuse the 10M pilot as shard 0 and acquire only source shards 1–19. Before this extra run was allowed to finish, the already successful run #2 above was discovered. A redundant run #3 (ID `41539757195`) was later cancelled after the already-successful full run was discovered. The subsequent push-triggered run #4 (ID `41540180756`) was skipped by the manual-dispatch guard. Neither is the source of the archived corpus; the canonical build remains run #2.
 
-The current workflow was subsequently adjusted in commit `8fb5d6e15b53d5eda3bbc81896c93f4107095f88`: shard acquisition runs only for an intentional `workflow_dispatch`, while pushes that merely edit workflow files do not start another long corpus acquisition. Future intentional rebuilds remain manually dispatchable. Since the full 200M archive already exists, no rebuild is currently needed.
+The corpus build workflow now supports both manual dispatch and reuse from a training workflow. It rebuilds all 20 deterministic shards from the pinned public upstream dataset, merges and validates them, then passes the corpus to training as a short-lived Actions artifact. It no longer depends on the old 10M pilot artifact or any GitHub Release. Expensive training is manually dispatched; ordinary pushes do not launch a rebuild or training run.
 
 The prior failed run [#1 — 20 disjoint Cosmopedia shards](https://github.com/Thunder2700c/Joseph-/actions/runs/41295607839) remains historical only: its merge/tokenizer operations succeeded, but final validation failed from the incorrect tokenizer sidecar name, so it was not the canonical downloadable artifact. Run #2 above fixed that and completed successfully.
 
@@ -184,7 +184,7 @@ The general-language base model has completed its first actual random-initialize
 
 - Code commit for the initial training path: `a9edd60ee5ebcc23db468240da4bb8fbaef5ffe5`; follow-up verification/metadata fixes: `97f4dc597281c0141bda61521c4b9e3dc808f2eb` and `816f25bcf92875905812ab5097bb23ce980329dd`.
 - Workflow: [Base language training calibration](https://github.com/Thunder2700c/Joseph-/actions/workflows/train-base-language-pilot.yml).
-- First workflow attempt [41541468461](https://github.com/Thunder2700c/Joseph-/actions/runs/41541468461) downloaded the release successfully, then stopped before training because the workflow read the wrong tokenizer-manifest key. The manifest field is `tokenizer_vocab_size`; this was corrected in the next run.
+- First workflow attempt [41541468461](https://github.com/Thunder2700c/Joseph-/actions/runs/41541468461) downloaded the then-public corpus release asset (published by an assistant-added workflow without user approval), then stopped before training because the workflow read the wrong tokenizer-manifest key. The manifest field is `tokenizer_vocab_size`; this was corrected in the next run. Future workflows rebuild the corpus and do not use that release.
 - Corrected run: [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443) — completed successfully. The JSONL telemetry, run metadata and checkpoint were downloaded and inspected.
 - Pilot architecture: random initialization, 8,192 vocabulary entries, 128 hidden width, 4 Transformer layers, 4 heads, 128-token context; batch size 8; AdamW learning rate 0.0003 and weight decay 0.1; 1,000 steps × 1,024 tokens per step (1,024,000 optimizer-seen tokens).
 - The calibration model is intentionally modest (1,858,304 parameters). It is a throughput/optimization experiment against the real training split, not the planned final model. It completed 1,000 steps and processed 1,024,000 optimizer token exposures; this is not a full pass over the 41,751,252-token training split.
