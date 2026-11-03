@@ -14,11 +14,11 @@ from training.checkpoint import load_checkpoint
 
 
 DEFAULT_PROMPTS = (
-    "<|user|> Hello! How has your day been? Assistant:",
-    "<|user|> I made a mistake and feel embarrassed. What should I do? Assistant:",
-    "<|user|> Explain why the sky looks blue in simple words. Assistant:",
-    "<|user|> I disagree with your answer. Can you reconsider it? Assistant:",
-    "<|user|> Tell me a short story about a traveller who gets lost. Assistant:",
+    "<|user|> Hello! How has your day been? <|assistant|>",
+    "<|user|> I made a mistake and feel embarrassed. What should I do? <|assistant|>",
+    "<|user|> Explain why the sky looks blue in simple words. <|assistant|>",
+    "<|user|> I disagree with your answer. Can you reconsider it? <|assistant|>",
+    "<|user|> Tell me a short story about a traveller who gets lost. <|assistant|>",
 )
 
 
