@@ -211,6 +211,14 @@ Full measurements, progression, SHA-256 values, bundle validation and interpreta
 
 Hu Tao-specific identity/dialogue training remains blocked until former-life stages 1–9 pass substantive review. This continuation used only the general-language Cosmopedia corpus and did not train Hu Tao's personality or biography.
 
+### Latest hard general-language experiment — 40,000 steps (2026-11-03) — COMPLETED, QUALITY GATE FAILED
+
+- Run [41631816865](https://github.com/Thunder2700c/Joseph-/actions/runs/41631816865) completed successfully on CPU from random initialization. It trained a 3.4M-parameter model with 256-token context for 40,000 steps and 40.96M optimizer token exposures.
+- Final validation loss was 5.2196 and validation perplexity 184.85. These metrics are not directly comparable to the earlier 11,000-step run because the architecture and data mixture changed.
+- The run built a 25% OASST1 dialogue supplement from reviewed English human-authored rows, using conversation-tree-safe train/validation separation; 4,460 training dialogue samples and 236 validation dialogue samples were reported.
+- All 58 tests passed, the base corpus and tokenizer provenance checks passed, the complete inference bundle passed the 1GB validator, and diagnostic samples were generated. **The diagnostic text remained incoherent, so the language-quality gate failed.** This is not an accepted language model and was not Hu Tao character training.
+- The 40,000-step workflow at that time downloaded the corpus from the unauthorized GitHub Release. The current workflow has since been changed to rebuild all 20 corpus shards from the pinned public upstream source and pass the verified artifact into the training job. No new long training run has been launched to test that refactor.
+
 ## 7. Model status and training direction
 
 ### Current code status
@@ -281,4 +289,4 @@ When authorized by the roadmap, the Android app should provide offline inference
 5. Inspect `PROJECT_BUILD_RULES.md`, `LANGUAGE_FOUNDATION.md`, `MODEL_TRAINING_PLAN.md`, `docs/MODEL_AND_MEMORY_BUDGET.md` and `character/knowledge_policy.md` for the permanent from-scratch rule, full AI package cap, corpus and point-of-view rules.
 6. Begin Android app development only after the standalone Hu Tao model demonstrably passes the success gates above.
 
-**Final naming reminder: Joseph = repository codename. Hu Tao = the character.**
+**Final naming reminder: Hu Tao is the character and AI identity. `Joseph-` is only the GitHub repository slug because the name Hu Tao was unavailable; Joseph is not her name or an internal codename.**
