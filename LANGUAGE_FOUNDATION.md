@@ -38,7 +38,9 @@ GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd81
 
 The 10M pilot and full 200M Cosmopedia v2 corpus have now both been acquired, validated and permanently archived as GitHub Releases. The full 200M run completed all 20 source partitions, global deduplication, split-integrity checks, tokenizer fitting, and Unicode checks. It contains 199,947,904 characters (50,907 train samples and 2,687 validation samples); the 8,192-entry tokenizer is 560,288 bytes. Validation text was not used to fit the tokenizer. See the verified run and permanent archive in CONTINUATION_CONTEXT.md.
 
-The first random-initialized neural base-model calibration pilot has completed in hosted GitHub Actions run [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443). The current chat runtime's local compute limitations did not prevent this hosted experiment. No Hu Tao character model exists, and the calibration checkpoint is not a capable general-language model. See the measured report at [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md).
+The first random-initialized neural base-model calibration pilot completed in Actions run [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443), followed by a 10.24M-token-exposure warm-start continuation in run [41594999963](https://github.com/Thunder2700c/Joseph-/actions/runs/41594999963). The continuation reached global step 11,000 with final sampled training/validation losses of 7.2779/7.2709, validation perplexity 1,437.87, average throughput 5,772.17 tokens/sec, 1,774.03 seconds of training-loop time and a 7,454,541-byte checkpoint. The full experimental inference bundle was 8,014,978 bytes and passed the 1GB validator. Full metrics are in [reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md](reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md).
+
+However, all three diagnostic generations were mostly incoherent and repetitive. This checkpoint is not a capable conversational model and the general-language foundation has not passed acceptance. No Hu Tao character model exists; her dedicated training remains gated on manual review of life-history stages 1–9. See also [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md).
 
 The default 8,192-vocabulary reference Transformer is approximately 6.90M parameters. A separate 1.86M-parameter calibration configuration completed its first CPU experiment: 1,858,304 parameters, 1,000 steps, 1,024,000 optimizer token exposures, final training/validation losses of 7.7335/7.8389, final validation perplexity 2,537.51, average training throughput 6,219.78 tokens/sec, 164.64 seconds of training-loop time and a 7,454,309-byte checkpoint. Full details and source hashes are in [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md). This remains a calibration experiment, not a plausible finished conversational model. The 200-million-character corpus cap is only a pipeline pilot, not a serious pretraining budget. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
@@ -95,7 +97,7 @@ The first non-sharded three-hour attempt was cancelled before producing a verifi
 - Permanent archives: [10M pilot release](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-pilot-10m-2026-11-02) and [full 200M release](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-merged-200m-2026-11-02). The release assets include the dataset attribution README, corpus, manifests and tokenizer.
 - The full workflow uses pinned Cosmopedia v2 revision `3ba9d60` and records `ODC-By-1.0` as the dataset-card licence. Only the `text` field was used; `prompt` and `seed_data` were excluded.
 
-This stage is complete as a corpus/tokenizer acquisition task. It has **not** trained any neural model weights. The full-corpus training data is not committed into the repository or included in the inference bundle.
+This corpus/tokenizer acquisition stage is complete. Its artifacts are separate from the neural checkpoints trained later. The full-corpus training data is not committed into the repository or included in the inference bundle.
 
 ## Conversation-data follow-up
 
@@ -103,10 +105,9 @@ Cosmopedia v2 supplies educational prose and stories, not authentic conversation
 
 ## Remaining steps
 
-1. Run corpus acquisition and inspect its manifest, token count and licence attribution.
-2. Fit and test the tokenizer on the actual training split, then archive its manifest.
-3. Use the completed CPU calibration measurements as an initial throughput baseline, then estimate feasible training time and choose model dimensions/training-token budgets from additional controlled measurements rather than guesswork.
-4. Continue controlled base training with materially more optimizer token exposures; record loss/perplexity, throughput, peak memory, held-out generation samples and checkpoint size.
-5. Continue expanding/reviewing Hu Tao's former-life memories and public Teyvat knowledge.
-6. Once stages 1–9 pass review, build original first-person Hu Tao dialogue data and continue training for her character.
-7. Complete held-out character evaluation before any Android implementation.
+1. Improve the general-language data mixture and tokenizer/model training setup. Cosmopedia's educational/story prose alone has produced poor dialogue-like generations. Evaluate candidate conversation supplements such as OASST1 only after source/licence, human-authorship, language filtering, tree reconstruction and train/validation/test separation are reviewed.
+2. Build a held-out qualitative language-evaluation suite covering grammar, continuity, question answering, explanation, varied prompts and longer generation. Keep test data separate from all training and tokenizer fitting.
+3. Run controlled continuation/scale experiments with more diverse approved data, recording loss/perplexity, generation samples, CPU/GPU throughput, peak memory, elapsed time and checkpoint size. Do not select architecture from throughput alone.
+4. Continue expanding and manually reviewing Hu Tao's former-life stages 1–9 and public Teyvat knowledge.
+5. Only after those stages pass review, create original first-person Hu Tao dialogue data and begin dedicated character training on the project's own base checkpoint.
+6. Complete held-out character, emotional-autonomy, factuality and continuity evaluation before any Android implementation.
