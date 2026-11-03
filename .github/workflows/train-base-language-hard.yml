@@ -52,7 +52,7 @@ jobs:
 
       - name: Download archived 200M-character base corpus and project tokenizer
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p data/corpus
           gh release download joseph-base-corpus-merged-200m-2026-11-02 \
