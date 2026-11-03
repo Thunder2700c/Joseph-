@@ -73,6 +73,16 @@ def main() -> None:
                 top_k=args.top_k,
                 eos_token_id=tokenizer.special_token_id("<eos>"),
                 pad_token_id=tokenizer.special_token_id("<pad>"),
+                stop_token_ids=[tokenizer.special_token_id("<|eot|>")],
+                forbidden_token_ids=[
+                    tokenizer.special_token_id("<bos>"),
+                    tokenizer.special_token_id("<|system|>"),
+                    tokenizer.special_token_id("<|user|>"),
+                    tokenizer.special_token_id("<|assistant|>"),
+                    tokenizer.special_token_id("<|hutao|>"),
+                    tokenizer.special_token_id("<|memory|>"),
+                    tokenizer.special_token_id("<|report|>"),
+                ],
             )[0].tolist()
         continuation = tokenizer.decode(generated[len(prompt_ids):])
         results.extend((f"## Prompt {index + 1}", prompt, "", continuation, ""))
