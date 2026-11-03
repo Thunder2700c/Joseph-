@@ -91,7 +91,7 @@ def _normalise_message(text: str) -> str:
 def conversation_samples(rows: list[dict[str, Any]], validation_percent: int = 5) -> tuple[list[str], list[str], dict]:
     """Create one causal SFT sequence for each preferred assistant reply."""
     if not 1 <= validation_percent <= 49:
-        raise ValueError("validation_percent must be between 1 and 49")
+        raise ValueError("validation_percent must be between 1 and 99")
 
     groups: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
     rejected: dict[str, int] = defaultdict(int)
