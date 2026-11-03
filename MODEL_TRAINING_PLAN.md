@@ -31,7 +31,9 @@ The project-trained Rust-backed ByteLevel BPE tokenizer has 8,192 vocabulary ent
 
 **First base-language calibration pilot: completed successfully** in GitHub Actions run [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443). The measured-results record is [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md). At step 1,000, evaluated training loss was 7.7335, validation loss 7.8389, training perplexity 2,283.62, validation perplexity 2,537.51, average loop throughput 6,219.78 tokens/sec, elapsed training-loop time 164.64 seconds, and checkpoint size 7,454,309 bytes. The run processed 1,024,000 optimizer token exposures.
 
-This is only a calibration/optimization pilot, not the completed general-language foundation or a claim of conversational competence. The validation perplexity remains very high, and 1.024M token exposures are not a full epoch over the 41.75M-token training split. Continue controlled base-language experiments and qualitative held-out evaluation. Loss reduction or checkpoint creation alone is not success.
+The first pilot was followed by a warm-start continuation in Actions run [41594999963](https://github.com/Thunder2700c/Joseph-/actions/runs/41594999963), adding 10,240,000 optimizer-token exposures and reaching global checkpoint step 11,000. Final sampled training/validation losses were 7.2779/7.2709, validation perplexity was 1,437.87, average CPU throughput was 5,772.17 tokens/sec, training-loop time was 1,774.03 seconds, and checkpoint size was 7,454,541 bytes. See [reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md](reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md).
+
+The continuation's three diagnostic generations were still incoherent and repetitive. Therefore the general-language foundation has **not** passed its qualitative competence gate. Both experiments validate a working training/checkpoint pipeline and show sampled loss reduction; neither proves useful conversation. The next phase must improve data diversity and generation quality, run held-out evaluations and further controlled training. The 11,264,000 optimizer-token exposures across both runs are not a full epoch over the 41.75M-token training split. Loss reduction or checkpoint creation alone is not success.
 
 ## Phase A — finish the source and memory foundation
 
@@ -87,7 +89,7 @@ The current `training/train.py` uses disk-backed int32 token caches and samples 
 - throughput, wall-clock time, peak memory and checkpoint size;
 - reproducibility from stored config, tokenizer and data hashes.
 
-The first calibration result is recorded in [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md). It verifies the training path and provides a measured CPU throughput baseline; it does not complete the base-language phase.
+The first calibration result is recorded in [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md), and its 10.24M-token-exposure warm-start continuation is recorded in [reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md](reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md). Both establish a measured CPU baseline, but qualitative generations remain incoherent; the base-language phase is not complete.
 
 Do not mistake memorisation of the corpus for language competence. Keep a held-out evaluation set from domains not copied verbatim into training. If the compute or corpus budget is inadequate, resize the model/training plan honestly rather than announcing success.
 
