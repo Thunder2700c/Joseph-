@@ -66,16 +66,17 @@ def get_batch(
         raise ValueError(f"token stream needs more than {seq_len + 1} tokens")
     if loss_masks is not None and loss_masks.numel() != data.numel():
         raise ValueError("token stream and loss-mask lengths must match")
-    starts = torch.randint(0, data.numel() - seq_len - 1, (batch_size,), generator=generator)
-    x = torch.stack([data[int(start):int(start) + seq_len] for start in starts])
-    y = torch.stack([
-        data[int(start) + 1:int(start) + seq_len + 1] for start in starts
-    ])
+    starts = torch.randint(
+        0, data.numel() - seq_len - 1, (batch_size,), generator=generator
+    )
+    offsets = torch.arange(seq_len, dtype=torch.long)
+    input_positions = starts[:, None] + offsets[None, :]
+    target_positions = input_positions + 1
+    x = data[input_positions]
+    y = data[target_positions]
     mask = None
     if loss_masks is not None:
-        mask = torch.stack([
-            loss_masks[int(start) + 1:int(start) + seq_len + 1] for start in starts
-        ]).to(device=device, dtype=torch.bool)
+        mask = loss_masks[target_positions].to(device=device, dtype=torch.bool)
     return (
         x.to(device=device, dtype=torch.long),
         y.to(device=device, dtype=torch.long),
