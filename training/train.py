@@ -42,6 +42,13 @@ def open_token_stream(path: str | Path, token_count: int) -> torch.Tensor:
     )
 
 
+def reduce_replica_loss(loss: torch.Tensor | None) -> torch.Tensor | None:
+    """Reduce DataParallel's per-device scalar-loss vector to one scalar."""
+    if loss is not None and loss.ndim > 0:
+        return loss.mean()
+    return loss
+
+
 def open_loss_mask(path: str | Path, token_count: int) -> torch.Tensor:
     if token_count < 1:
         raise ValueError("token_count must be positive")
@@ -119,6 +126,7 @@ def estimate_loss(
             )
             with context:
                 _, loss = model(x, y, batch_mask, return_logits=False)
+            loss = reduce_replica_loss(loss)
             losses.append(float(loss.item()))
         mean_loss = sum(losses) / len(losses)
         metrics[f"{name}_loss"] = mean_loss
@@ -472,6 +480,7 @@ def main() -> None:
         )
         with context:
             _, loss = model(x, y, batch_mask, return_logits=False)
+        loss = reduce_replica_loss(loss)
 
         if scaler_enabled:
             old_scale = scaler.get_scale()
