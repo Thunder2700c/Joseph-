@@ -56,7 +56,7 @@ class TrainingCliSmokeTests(unittest.TestCase):
             self.assertTrue(output_file.is_file())
             self.assertIn("Starting from random initialization", result.stdout)
             self.assertIn("validation_loss=", result.stdout)
-            self.assertIn("Saved from-scratch experimental checkpoint", result.stdout)
+            self.assertIn("Saved experimental checkpoint", result.stdout)
             self.assertTrue((root / "token_cache" / "train.bin").is_file())
             self.assertTrue((root / "token_cache" / "validation.bin").is_file())
             first_payload = load_checkpoint(output_file)
