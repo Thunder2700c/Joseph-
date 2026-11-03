@@ -297,6 +297,11 @@ def main() -> None:
         and parent_payload.get("scheduler_state") is not None
     ):
         scheduler.load_state_dict(parent_payload["scheduler_state"])
+        for group, base_lr, multiplier in zip(
+            optimizer.param_groups, scheduler.base_lrs, scheduler.lr_lambdas
+        ):
+            if callable(multiplier):
+                group["lr"] = base_lr * multiplier(scheduler.last_epoch)
         scheduler_state_status = "restored"
     else:
         scheduler_state_status = "fresh_schedule"
