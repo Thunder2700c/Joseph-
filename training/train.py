@@ -351,6 +351,7 @@ def main() -> None:
         if step == 1 or step % args.eval_interval == 0 or step == args.steps:
             eval_metrics = estimate_loss(
                 model, train_data, validation_data,
+                train_loss_mask, validation_loss_mask,
                 args.batch_size, args.seq_len, args.eval_batches, device,
                 eval_seed=args.eval_seed,
             )
