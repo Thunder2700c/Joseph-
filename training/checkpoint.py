@@ -18,6 +18,7 @@ def save_checkpoint(
     step: int,
     optimizer: torch.optim.Optimizer | None = None,
     scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
+    scaler: torch.cuda.amp.GradScaler | None = None,
 ) -> int:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -31,6 +32,8 @@ def save_checkpoint(
         payload["optimizer_state"] = optimizer.state_dict()
     if scheduler is not None:
         payload["scheduler_state"] = scheduler.state_dict()
+    if scaler is not None:
+        payload["scaler_state"] = scaler.state_dict()
 
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=target.name + ".", suffix=".tmp", dir=target.parent
