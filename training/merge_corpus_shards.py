@@ -22,6 +22,7 @@ def merge_corpus_shards(
     *,
     expected_shards: int = 20,
     max_characters: int = 200_000_000,
+    shard_prefix: str = "cosmopedia-shard-",
 ) -> dict:
     """Verify, globally deduplicate, and merge all expected shard outputs.
 
@@ -35,7 +36,9 @@ def merge_corpus_shards(
 
     root = Path(input_root)
     output = Path(output_dir)
-    folders = sorted(path for path in root.glob("cosmopedia-shard-*") if path.is_dir())
+    if not shard_prefix or "/" in shard_prefix or "\\" in shard_prefix:
+        raise ValueError("shard_prefix must be a non-empty simple filename prefix")
+    folders = sorted(path for path in root.glob(f"{shard_prefix}*") if path.is_dir())
     if len(folders) != expected_shards:
         raise ValueError(
             f"expected {expected_shards} shard artifact directories, found {len(folders)}"
@@ -87,6 +90,7 @@ def merge_corpus_shards(
             "dataset_config": manifest.get("dataset_config"),
             "dataset_revision": manifest.get("dataset_revision"),
             "dataset_license": manifest.get("dataset_license"),
+            "dataset_card": manifest.get("dataset_card"),
             "selected_field": manifest.get("selected_field"),
             "excluded_fields": manifest.get("excluded_fields"),
         }
@@ -187,7 +191,6 @@ def merge_corpus_shards(
     manifest = {
         "format": "joseph-base-language-corpus-merged-v1",
         **(common_fields or {}),
-        "dataset_card": "https://huggingface.co/datasets/HuggingFaceTB/smollm-corpus",
         "selection": {
             "expected_shards": expected_shards,
             "source_shards_available": source_shard_count,
@@ -232,12 +235,14 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--expected-shards", type=int, default=20)
     parser.add_argument("--max-characters", type=int, default=200_000_000)
+    parser.add_argument("--shard-prefix", default="cosmopedia-shard-")
     args = parser.parse_args()
     manifest = merge_corpus_shards(
         args.input_root,
         args.output_dir,
         expected_shards=args.expected_shards,
         max_characters=args.max_characters,
+        shard_prefix=args.shard_prefix,
     )
     print(json.dumps(manifest["samples"], ensure_ascii=False, indent=2))
     print(f"Merged corpus manifest: {Path(args.output_dir) / 'manifest.json'}")
