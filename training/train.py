@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import math
@@ -96,6 +97,8 @@ def estimate_loss(
     eval_batches: int,
     device: str,
     eval_seed: int = 2026,
+    amp_dtype: torch.dtype | None = None,
+    amp_enabled: bool = False,
 ) -> dict[str, float]:
     model.eval()
     metrics: dict[str, float] = {}
@@ -110,7 +113,12 @@ def estimate_loss(
                 data, batch_size, seq_len, device,
                 generator=generator, loss_masks=current_mask,
             )
-            _, loss = model(x, y, batch_mask)
+            context = (
+                torch.autocast(device_type="cuda", dtype=amp_dtype)
+                if amp_enabled and amp_dtype is not None else nullcontext()
+            )
+            with context:
+                _, loss = model(x, y, batch_mask)
             losses.append(float(loss.item()))
         mean_loss = sum(losses) / len(losses)
         metrics[f"{name}_loss"] = mean_loss
@@ -150,6 +158,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--num-threads", type=int, help="limit CPU threads for reproducible hosted runs")
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+    parser.add_argument("--amp-dtype", default="auto", choices=["auto", "none", "float16", "bfloat16"])
     args = parser.parse_args()
 
     if args.steps < 1 or args.batch_size < 1 or args.seq_len < 8:
@@ -182,6 +191,18 @@ def main() -> None:
     )
     if device == "cuda" and not torch.cuda.is_available():
         parser.error("CUDA was requested but is not available")
+
+    if device != "cuda" or args.amp_dtype == "none":
+        amp_enabled = False
+        amp_dtype = None
+    elif args.amp_dtype == "auto" or args.amp_dtype == "float16":
+        amp_enabled = True
+        amp_dtype = torch.float16
+    else:
+        if not torch.cuda.is_bf16_supported():
+            parser.error("bfloat16 mixed precision was requested but the CUDA device does not support it")
+        amp_enabled = True
+        amp_dtype = torch.bfloat16
 
     input_path = Path(args.input)
     validation_path = Path(args.validation)
@@ -292,6 +313,18 @@ def main() -> None:
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, lr_lambda=learning_rate_multiplier
     )
+    scaler_enabled = amp_enabled and amp_dtype == torch.float16
+    scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
+    if (
+        scaler_enabled
+        and args.init_checkpoint
+        and parent_payload is not None
+        and parent_payload.get("scaler_state") is not None
+    ):
+        scaler.load_state_dict(parent_payload["scaler_state"])
+        scaler_state_status = "restored"
+    else:
+        scaler_state_status = "fresh_or_disabled"
     if (
         args.init_checkpoint
         and parent_payload is not None
@@ -356,6 +389,8 @@ def main() -> None:
         "warmup_steps": args.warmup_steps,
         "minimum_learning_rate_ratio": args.min_learning_rate_ratio,
         "scheduler_state": scheduler_state_status,
+        "mixed_precision": str(amp_dtype) if amp_enabled else "disabled",
+        "gradient_scaler_state": scaler_state_status,
         "checkpoint_path": str(output_path),
         "metrics_path": str(metrics_path),
         "started_unix": time.time(),
@@ -383,6 +418,10 @@ def main() -> None:
         f"Input SHA-256: train={train_hash} validation={validation_hash} "
         f"tokenizer={tokenizer_hash}"
     )
+    print(
+        f"Mixed precision: {str(amp_dtype) if amp_enabled else 'disabled'}; "
+        f"gradient_scaler={scaler_enabled}"
+    )
 
     if device == "cuda":
         torch.cuda.reset_peak_memory_stats()
@@ -397,11 +436,29 @@ def main() -> None:
             loss_masks=train_loss_mask,
         )
         optimizer.zero_grad(set_to_none=True)
-        _, loss = model(x, y, batch_mask)
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-        scheduler.step()
+        context = (
+            torch.autocast(device_type="cuda", dtype=amp_dtype)
+            if amp_enabled and amp_dtype is not None else nullcontext()
+        )
+        with context:
+            _, loss = model(x, y, batch_mask)
+
+        if scaler_enabled:
+            old_scale = scaler.get_scale()
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            scaler.step(optimizer)
+            scaler.update()
+            # Do not advance the schedule when GradScaler skipped an
+            # optimizer update after detecting non-finite gradients.
+            if scaler.get_scale() >= old_scale:
+                scheduler.step()
+        else:
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            scheduler.step()
 
         if step == 1 or step % args.eval_interval == 0 or step == args.steps:
             eval_metrics = estimate_loss(
@@ -409,6 +466,8 @@ def main() -> None:
                 train_loss_mask, validation_loss_mask,
                 args.batch_size, args.seq_len, args.eval_batches, device,
                 eval_seed=args.eval_seed,
+                amp_dtype=amp_dtype,
+                amp_enabled=amp_enabled,
             )
             now = time.perf_counter()
             elapsed_interval = max(now - last_log_time, 1e-9)
@@ -444,6 +503,7 @@ def main() -> None:
                     output_path, model, config, parent_checkpoint_step + step,
                     optimizer=optimizer,
                     scheduler=scheduler,
+                    scaler=scaler if scaler_enabled else None,
                 )
                 metadata.update({
                     "status": "running",
@@ -468,6 +528,7 @@ def main() -> None:
     checkpoint_size = save_checkpoint(
         output_path, model, config, global_step,
         optimizer=optimizer, scheduler=scheduler,
+        scaler=scaler if scaler_enabled else None,
     )
     metadata.update({
         "status": "completed",
