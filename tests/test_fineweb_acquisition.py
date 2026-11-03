@@ -82,6 +82,7 @@ class FineWebAcquisitionTests(unittest.TestCase):
             fineweb_row(101, language_score=0.5),
             fineweb_row(102, int_score=3),
             fineweb_row(103, token_count=50),
+            fineweb_row(104, text="Contact the author at private.person@example.org for more information."),
         ]
         with tempfile.TemporaryDirectory() as directory:
             manifest = write_corpus(
@@ -101,6 +102,7 @@ class FineWebAcquisitionTests(unittest.TestCase):
             self.assertEqual(manifest["filter_rejections"]["language_score_below_threshold"], 1)
             self.assertEqual(manifest["filter_rejections"]["educational_score_below_threshold"], 1)
             self.assertEqual(manifest["filter_rejections"]["source_token_count_out_of_range"], 1)
+            self.assertEqual(manifest["filter_rejections"]["obvious_pii_pattern"], 1)
             self.assertNotIn("https://example.org/0", (Path(directory) / "train.txt").read_text() + (Path(directory) / "validation.txt").read_text())
 
     def test_duplicate_documents_are_removed_within_shard(self):
