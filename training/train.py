@@ -349,7 +349,7 @@ def main() -> None:
                     "last_checkpoint_saved_unix": time.time(),
                 })
                 metadata_path.write_text(
-                    json.dumps(metadata, ensure_ascii=False, indent=2) + "\\n",
+                    json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
                     encoding="utf-8",
                 )
                 print(
