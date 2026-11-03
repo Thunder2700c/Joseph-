@@ -182,6 +182,20 @@ def conversation_samples(rows: list[dict[str, Any]], validation_percent: int = 5
                 broken_chains += 1
                 continue
             chain.reverse()
+            for ancestor in chain:
+                if ancestor.get("role") != "assistant":
+                    continue
+                ancestor_parent = ancestor.get("parent_id")
+                if ancestor_parent is None:
+                    valid = False
+                    break
+                selected = preferred_children.get(str(ancestor_parent), [])
+                if not any(str(item["message_id"]) == str(ancestor["message_id"]) for item in selected):
+                    valid = False
+                    break
+            if not valid:
+                broken_chains += 1
+                continue
             roles = [item.get("role") for item in chain]
             if not roles or roles[0] != "prompter" or roles[-1] != "assistant":
                 continue
