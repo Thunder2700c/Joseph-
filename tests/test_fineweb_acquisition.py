@@ -122,39 +122,22 @@ class FineWebAcquisitionTests(unittest.TestCase):
             self.assertEqual(manifest["samples"]["train"] + manifest["samples"]["validation"], 100)
 
     def test_generic_merger_keeps_fineweb_filter_and_license_provenance(self):
+        def sample_for(split, prefix):
+            for index in range(1000):
+                text = f"{prefix} {index}. " + ("A sufficiently long educational content phrase. " * 8)
+                bucket = int(hashlib.sha256(text.casefold().encode()).hexdigest()[:8], 16) % 100
+                assigned = "validation" if bucket < 50 else "train"
+                if assigned == split:
+                    return text
+            raise AssertionError(f"could not find deterministic {split} test sample")
+
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "incoming"
             root.mkdir()
-            texts = []
-            for index in range(100):
-                text = f"Document body {index} " + ("a sufficiently long educational content phrase. " * 8)
-                bucket = int(hashlib.sha256(text.casefold().encode()).hexdigest()[:8], 16) % 100
-                texts.append((text, "validation" if bucket < 50 else "train"))
-            selected = {
-                split: next(text for text, assigned in texts if assigned == split)
-                for split in ("train", "validation")
-            }
-            make_shard(root, 0, selected["train"], selected["validation"])
-            make_shard(root, 1, selected["train"] + " second shard", selected["validation"] + " second shard")
-            # The helper above writes intentionally different document bodies;
-            # use unique samples and ensure split ownership matches the hash.
-            for index in (0, 1):
-                folder = root / f"fineweb-shard-{index}"
-                for split in ("train", "validation"):
-                    file = folder / f"{split}.txt"
-                    text = file.read_text(encoding="utf-8").strip()
-                    bucket = int(hashlib.sha256(text.casefold().encode()).hexdigest()[:8], 16) % 100
-                    if (bucket < 50) != (split == "validation"):
-                        alternative = next(
-                            candidate for candidate, assigned in texts
-                            if assigned == split and candidate not in file.read_text(encoding="utf-8")
-                        )
-                        file.write_text(alternative + "\n", encoding="utf-8")
-                manifest_path = folder / "manifest.json"
-                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-                for split in ("train", "validation"):
-                    manifest["files"][f"{split}.txt"]["sha256"] = hashlib.sha256((folder / f"{split}.txt").read_bytes()).hexdigest()
-                manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            for index in range(2):
+                train_text = sample_for("train", f"Training shard {index}")
+                validation_text = sample_for("validation", f"Validation shard {index}")
+                make_shard(root, index, train_text, validation_text)
 
             merged = merge_corpus_shards(
                 root,
@@ -168,6 +151,9 @@ class FineWebAcquisitionTests(unittest.TestCase):
             self.assertEqual(merged["license_note"], "Common Crawl terms also apply.")
             self.assertEqual(merged["filter_policy"]["min_educational_score"], 4)
             self.assertEqual(merged["selection"]["source_shard_prefix"], "fineweb-shard-")
+            self.assertEqual(merged["samples"]["train"], 2)
+            self.assertEqual(merged["samples"]["validation"], 2)
+
 
 
 if __name__ == "__main__":
