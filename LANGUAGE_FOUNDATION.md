@@ -2,7 +2,7 @@
 
 Decision date: 2026-10-31  
 Character: Hu Tao  
-Repository codename: Joseph
+GitHub repository slug: `Joseph-` (name availability only; not a character or internal codename)
 
 ## Permanent model constraints
 
@@ -36,7 +36,7 @@ The script streams rows, deduplicates normalized text, generates deterministic t
 
 GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd814: 47 unit tests passed, Python modules compiled, and a tiny two-step CPU training smoke test measured train/validation loss and saved a checkpoint. This verifies the execution path and checkpoint creation, not useful language-model quality.
 
-The 10M pilot and full 200M Cosmopedia v2 corpus have now both been acquired, validated and permanently archived as GitHub Releases. The full 200M run completed all 20 source partitions, global deduplication, split-integrity checks, tokenizer fitting, and Unicode checks. It contains 199,947,904 characters (50,907 train samples and 2,687 validation samples); the 8,192-entry tokenizer is 560,288 bytes. Validation text was not used to fit the tokenizer. See the verified run and permanent archive in CONTINUATION_CONTEXT.md.
+The 10M pilot and full 200M Cosmopedia v2 corpus were acquired and validated as temporary GitHub Actions artifacts. The canonical full 200M build is run [41429138745](https://github.com/Thunder2700c/Joseph-/actions/runs/41429138745): 20 source partitions, global deduplication, split-integrity checks, tokenizer fitting and Unicode checks. It contains 199,947,904 characters (50,907 train samples and 2,687 validation samples); the 8,192-entry tokenizer is 560,288 bytes. The canonical artifact (ID `13139892302`, 74,488,443 bytes) expires on 2026-11-05 at 12:07 UTC. Permanent GitHub Releases were not authorized. The training workflow now rebuilds this corpus from the pinned upstream dataset and passes it between jobs as a temporary Actions artifact, so no permanent release is required. See CONTINUATION_CONTEXT.md for provenance.
 
 The first random-initialized neural base-model calibration pilot completed in Actions run [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443), followed by a 10.24M-token-exposure warm-start continuation in run [41594999963](https://github.com/Thunder2700c/Joseph-/actions/runs/41594999963). The continuation reached global step 11,000 with final sampled training/validation losses of 7.2779/7.2709, validation perplexity 1,437.87, average throughput 5,772.17 tokens/sec, 1,774.03 seconds of training-loop time and a 7,454,541-byte checkpoint. The full experimental inference bundle was 8,014,978 bytes and passed the 1GB validator. Full metrics are in [reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md](reports/BASE_LANGUAGE_CONTINUATION_2026-11-03.md).
 
@@ -94,7 +94,7 @@ The first non-sharded three-hour attempt was cancelled before producing a verifi
 - The full build completed successfully in [Actions run 41429138745](https://github.com/Thunder2700c/Joseph-/actions/runs/41429138745): all 20 source partitions passed, global merge and deduplication succeeded, and final tokenizer validation passed.
 - Final full-corpus manifest: 199,947,904 characters, 50,907 train samples, 2,687 validation samples, 11 duplicates removed across shards. Approximately 49,986,976 tokens at four characters per token; this number is an estimate.
 - Final tokenizer: 8,192 vocabulary entries, 560,288 bytes, SHA-256 `57911f2d25e2733f36b172160e07dc6649c1501afa2e76b440b71829adc995ab`. Validation split was excluded from fitting.
-- Permanent archives: [10M pilot release](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-pilot-10m-2026-11-02) and [full 200M release](https://github.com/Thunder2700c/Joseph-/releases/tag/joseph-base-corpus-merged-200m-2026-11-02). The release assets include the dataset attribution README, corpus, manifests and tokenizer.
+- Historical publication: the 10M pilot and 200M corpus were published as GitHub Releases by assistant-added archive workflows without the user's approval. Do not create further Releases or tags. Those historical releases remain pending the user's decision on deletion. The supported training path rebuilds the corpus from the pinned public source and uses a short-lived Actions artifact.
 - The full workflow uses pinned Cosmopedia v2 revision `3ba9d60` and records `ODC-By-1.0` as the dataset-card licence. Only the `text` field was used; `prompt` and `seed_data` were excluded.
 
 This corpus/tokenizer acquisition stage is complete. Its artifacts are separate from the neural checkpoints trained later. The full-corpus training data is not committed into the repository or included in the inference bundle.
