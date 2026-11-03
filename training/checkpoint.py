@@ -16,6 +16,7 @@ def save_checkpoint(
     model: torch.nn.Module,
     config: ModelConfig,
     step: int,
+    optimizer: torch.optim.Optimizer | None = None,
 ) -> int:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -25,6 +26,8 @@ def save_checkpoint(
         "step": int(step),
         "model_state": model.state_dict(),
     }
+    if optimizer is not None:
+        payload["optimizer_state"] = optimizer.state_dict()
 
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=target.name + ".", suffix=".tmp", dir=target.parent
