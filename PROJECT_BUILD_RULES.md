@@ -2,6 +2,12 @@
 
 These rules apply to every future ChatGPT conversation, implementation, training experiment and release.
 
+## Publishing and external side effects
+
+- Never create, publish, update or delete GitHub Releases, tags, packages, public datasets, public artifacts or other externally visible project distributions without explicit user approval for that specific action. A public repository or successful CI run is not permission to publish.
+- Prefer short-lived GitHub Actions artifacts for training handoff when they are actually needed. Keep corpus data reproducible from pinned public sources and do not create permanent release assets merely for convenience.
+- Never delete an already-published Release or tag without explicit user approval. Treat Release deletion and tag deletion as separate operations and verify both afterward.
+
 ## Hard distributable AI size ceiling
 
 The complete distributable AI inference payload must never exceed **1,000,000,000 bytes** (one billion decimal bytes). This is a hard maximum, not a target to fill. The model may be any smaller size; there is no minimum model size. Choose the smallest architecture that passes the measured quality tests within the cap.
