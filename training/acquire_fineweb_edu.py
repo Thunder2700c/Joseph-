@@ -275,6 +275,11 @@ def main() -> None:
         validation_percent=args.validation_percent,
     )
     manifest["source_shards_available"] = source_shard_count
+    manifest["shard"] = {
+        "count": args.num_shards,
+        "index": args.shard_index,
+        "method": "IterableDataset.shard before per-shard shuffle",
+    }
     manifest["shuffle_seed"] = args.seed + args.shard_index
     manifest["shuffle_buffer"] = args.shuffle_buffer
     manifest_path = Path(args.output_dir) / "manifest.json"
