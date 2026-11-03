@@ -46,10 +46,11 @@ def get_batch(
     batch_size: int,
     seq_len: int,
     device: str,
+    generator: torch.Generator | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     if data.numel() <= seq_len + 1:
         raise ValueError(f"token stream needs more than {seq_len + 1} tokens")
-    starts = torch.randint(0, data.numel() - seq_len - 1, (batch_size,))
+    starts = torch.randint(0, data.numel() - seq_len - 1, (batch_size,), generator=generator)
     x = torch.stack([data[int(start):int(start) + seq_len] for start in starts])
     y = torch.stack([
         data[int(start) + 1:int(start) + seq_len + 1] for start in starts
@@ -66,15 +67,17 @@ def estimate_loss(
     seq_len: int,
     eval_batches: int,
     device: str,
+    eval_seed: int = 2026,
 ) -> dict[str, float]:
     model.eval()
     metrics: dict[str, float] = {}
-    for name, data in (("train", train_data), ("validation", validation_data)):
+    for split_index, (name, data) in enumerate((("train", train_data), ("validation", validation_data))):
         if data is None:
             continue
         losses = []
+        generator = torch.Generator(device="cpu").manual_seed(eval_seed + split_index)
         for _ in range(eval_batches):
-            x, y = get_batch(data, batch_size, seq_len, device)
+            x, y = get_batch(data, batch_size, seq_len, device, generator=generator)
             _, loss = model(x, y)
             losses.append(float(loss.item()))
         mean_loss = sum(losses) / len(losses)
@@ -92,7 +95,9 @@ def main() -> None:
     parser.add_argument("--validation", required=True, help="held-out validation split UTF-8 text")
     parser.add_argument("--tokenizer", required=True, help="project-trained tokenizer JSON")
     parser.add_argument("--output", required=True, help="checkpoint output path")
-    parser.add_argument("--init-checkpoint", help="warm-start weights from a compatible project checkpoint (optimizer state is not restored)")
+    parser.add_argument("--init-checkpoint", help="continue from a compatible checkpoint; optimizer state is restored when present")
+    parser.add_argument("--reset-optimizer", action="store_true", help="start fresh AdamW moments even when the checkpoint contains optimizer state")
+    parser.add_argument("--eval-seed", type=int, default=2026, help="fixed seed for comparable evaluation batches")
     parser.add_argument("--token-cache-dir", help="directory for disk-backed token caches")
     parser.add_argument("--metrics-file", help="JSONL telemetry output; defaults beside checkpoint")
     parser.add_argument("--run-metadata", help="JSON run metadata output; defaults beside checkpoint")
@@ -178,6 +183,7 @@ def main() -> None:
     model = JosephLanguageModel(config).to(device)
     parent_checkpoint_step = 0
     parent_checkpoint_hash = None
+    parent_payload = None
     initialization = "random"
     if args.init_checkpoint:
         parent_path = Path(args.init_checkpoint)
@@ -199,6 +205,17 @@ def main() -> None:
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
     )
+    if args.init_checkpoint and parent_payload is not None:
+        if parent_payload.get("optimizer_state") is not None and not args.reset_optimizer:
+            optimizer.load_state_dict(parent_payload["optimizer_state"])
+            for group in optimizer.param_groups:
+                group["lr"] = args.learning_rate
+                group["weight_decay"] = args.weight_decay
+            optimizer_state_status = "restored_adamw_state"
+        else:
+            optimizer_state_status = "new_adamw_state"
+    else:
+        optimizer_state_status = "not_applicable_random_initialization"
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -212,7 +229,7 @@ def main() -> None:
         "format": "joseph-training-run-v1",
         "status": "running",
         "initialization": initialization,
-        "optimizer_state": "new_adamw_state",
+        "optimizer_state": optimizer_state_status,
         "parent_checkpoint_path": str(args.init_checkpoint) if args.init_checkpoint else None,
         "parent_checkpoint_sha256": parent_checkpoint_hash,
         "parent_checkpoint_step": parent_checkpoint_step,
@@ -235,6 +252,8 @@ def main() -> None:
         "steps_requested": args.steps,
         "global_step_start": parent_checkpoint_step + 1,
         "evaluation_batches_per_split": args.eval_batches,
+        "evaluation_seed": args.eval_seed,
+        "evaluation_batches_are_fixed": True,
         "learning_rate": args.learning_rate,
         "weight_decay": args.weight_decay,
         "optimizer": "AdamW",
@@ -249,8 +268,8 @@ def main() -> None:
 
     if args.init_checkpoint:
         print(
-            f"Warm-starting from project checkpoint step {parent_checkpoint_step} "
-            f"({parent_checkpoint_hash}); AdamW optimizer state is newly initialized."
+            f"Continuing project checkpoint step {parent_checkpoint_step} "
+            f"({parent_checkpoint_hash}); optimizer_state={optimizer_state_status}."
         )
     else:
         print(
@@ -285,6 +304,7 @@ def main() -> None:
             eval_metrics = estimate_loss(
                 model, train_data, validation_data,
                 args.batch_size, args.seq_len, args.eval_batches, device,
+                eval_seed=args.eval_seed,
             )
             now = time.perf_counter()
             elapsed_interval = max(now - last_log_time, 1e-9)
@@ -319,7 +339,7 @@ def main() -> None:
 
     elapsed = time.perf_counter() - start_time
     global_step = parent_checkpoint_step + args.steps
-    checkpoint_size = save_checkpoint(output_path, model, config, global_step)
+    checkpoint_size = save_checkpoint(output_path, model, config, global_step, optimizer=optimizer)
     metadata.update({
         "status": "completed",
         "steps_completed_this_run": args.steps,
