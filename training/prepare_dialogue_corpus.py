@@ -27,7 +27,7 @@ DOLLY_LICENSE = "CC-BY-SA-3.0"
 
 
 def normalize_text(value: str) -> str:
-    return re.sub(r"\\s+", " ", value).strip()
+    return re.sub(r"\s+", " ", value).strip()
 
 
 def dolly_row_to_sample(row: dict[str, Any]) -> str | None:
@@ -52,7 +52,7 @@ def dolly_row_to_sample(row: dict[str, Any]) -> str | None:
 
     user_text = instruction
     if context:
-        user_text += "\\n\\nContext: " + context
+        user_text += "\n\nContext: " + context
     return f"<|user|> {user_text} <|assistant|> {response} <|eot|>"
 
 
@@ -181,11 +181,11 @@ def main() -> None:
     train_dialogue_path = output / "dialogue-train.txt"
     validation_dialogue_path = output / "dialogue-validation.txt"
     train_dialogue_path.write_text(
-        "\\n".join(dialogue_train) + "\\n",
+        "\n".join(dialogue_train) + "\n",
         encoding="utf-8",
     )
     validation_dialogue_path.write_text(
-        "\\n".join(dialogue_validation) + "\\n",
+        "\n".join(dialogue_validation) + "\n",
         encoding="utf-8",
     )
     source_report["train_sha256"] = sha256_file(train_dialogue_path)
@@ -200,7 +200,7 @@ def main() -> None:
         ),
     }
     (output / "dialogue-source-report.json").write_text(
-        json.dumps(source_report, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps(source_report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -215,15 +215,15 @@ def main() -> None:
         args.seed,
     )
     (output / "dialogue-attribution.md").write_text(
-        "# Dialogue training-data attribution\\n\\n"
-        "## OpenAssistant OASST1\\n"
-        "- Source: https://huggingface.co/datasets/OpenAssistant/oasst1\\n"
-        "- Revision: " + OASST1_REVISION + "\\n"
-        "- Licence: Apache-2.0\\n\\n"
-        "## Databricks Dolly 15K\\n"
-        "- Source: https://huggingface.co/datasets/databricks/databricks-dolly-15k\\n"
-        "- Revision: " + DOLLY_REVISION + "\\n"
-        "- Licence: CC BY-SA 3.0; retain attribution and review ShareAlike obligations.\\n",
+        "# Dialogue training-data attribution\n\n"
+        "## OpenAssistant OASST1\n"
+        "- Source: https://huggingface.co/datasets/OpenAssistant/oasst1\n"
+        "- Revision: " + OASST1_REVISION + "\n"
+        "- Licence: Apache-2.0\n\n"
+        "## Databricks Dolly 15K\n"
+        "- Source: https://huggingface.co/datasets/databricks/databricks-dolly-15k\n"
+        "- Revision: " + DOLLY_REVISION + "\n"
+        "- Licence: CC BY-SA 3.0; retain attribution and review ShareAlike obligations.\n",
         encoding="utf-8",
     )
     print(json.dumps({
