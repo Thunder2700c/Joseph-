@@ -10,7 +10,8 @@ from tokenizers import AddedToken, Tokenizer, decoders, models, pre_tokenizers, 
 
 SPECIAL_TOKENS = (
     "<pad>", "<bos>", "<eos>", "<unk>",
-    "<|system|>", "<|user|>", "<|hutao|>", "<|memory|>", "<|report|>", "<|eot|>",
+    "<|system|>", "<|user|>", "<|assistant|>", "<|hutao|>",
+    "<|memory|>", "<|report|>", "<|eot|>",
 )
 
 
