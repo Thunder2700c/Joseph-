@@ -14,9 +14,11 @@ from training.checkpoint import load_checkpoint
 
 
 DEFAULT_PROMPTS = (
-    "A good explanation should begin by",
-    "In a quiet village, a traveller discovers",
-    "The reason people preserve old stories is",
+    "<|user|> Hello! How has your day been? Assistant:",
+    "<|user|> I made a mistake and feel embarrassed. What should I do? Assistant:",
+    "<|user|> Explain why the sky looks blue in simple words. Assistant:",
+    "<|user|> I disagree with your answer. Can you reconsider it? Assistant:",
+    "<|user|> Tell me a short story about a traveller who gets lost. Assistant:",
 )
 
 
@@ -53,7 +55,7 @@ def main() -> None:
         f"Sampling: temperature={args.temperature}, top_k={args.top_k}, "
         f"max_new_tokens={args.max_new_tokens}, seed={args.seed}",
         "",
-        "These are diagnostic samples, not a scored benchmark.",
+        "These are generic conversation diagnostics, not a scored benchmark or Hu Tao identity test.",
         "",
     ]
 
