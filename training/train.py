@@ -15,7 +15,7 @@ import torch
 from joseph.config import ModelConfig
 from joseph.model import JosephLanguageModel
 from joseph.tokenizer import ByteBPETokenizer
-from training.checkpoint import save_checkpoint
+from training.checkpoint import load_checkpoint, save_checkpoint
 from training.tokenize_corpus import tokenize_text_file
 
 
@@ -92,6 +92,7 @@ def main() -> None:
     parser.add_argument("--validation", required=True, help="held-out validation split UTF-8 text")
     parser.add_argument("--tokenizer", required=True, help="project-trained tokenizer JSON")
     parser.add_argument("--output", required=True, help="checkpoint output path")
+    parser.add_argument("--init-checkpoint", help="warm-start weights from a compatible project checkpoint (optimizer state is not restored)")
     parser.add_argument("--token-cache-dir", help="directory for disk-backed token caches")
     parser.add_argument("--metrics-file", help="JSONL telemetry output; defaults beside checkpoint")
     parser.add_argument("--run-metadata", help="JSON run metadata output; defaults beside checkpoint")
@@ -175,6 +176,24 @@ def main() -> None:
     )
     config.validate()
     model = JosephLanguageModel(config).to(device)
+    parent_checkpoint_step = 0
+    parent_checkpoint_hash = None
+    initialization = "random"
+    if args.init_checkpoint:
+        parent_path = Path(args.init_checkpoint)
+        if not parent_path.is_file():
+            parser.error(f"initial checkpoint does not exist: {parent_path}")
+        parent_checkpoint_hash = sha256_file(parent_path)
+        parent_payload = load_checkpoint(parent_path, map_location=device)
+        parent_config = ModelConfig.from_dict(parent_payload["config"])
+        if parent_config.to_dict() != config.to_dict():
+            parser.error(
+                "initial checkpoint config does not exactly match requested model config: "
+                f"checkpoint={parent_config.to_dict()} requested={config.to_dict()}"
+            )
+        model.load_state_dict(parent_payload["model_state"], strict=True)
+        parent_checkpoint_step = int(parent_payload["step"])
+        initialization = "warm_start_from_project_checkpoint"
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=args.learning_rate,
@@ -192,7 +211,11 @@ def main() -> None:
     metadata = {
         "format": "joseph-training-run-v1",
         "status": "running",
-        "initialization": "random",
+        "initialization": initialization,
+        "optimizer_state": "new_adamw_state",
+        "parent_checkpoint_path": str(args.init_checkpoint) if args.init_checkpoint else None,
+        "parent_checkpoint_sha256": parent_checkpoint_hash,
+        "parent_checkpoint_step": parent_checkpoint_step,
         "seed": args.seed,
         "python": platform.python_version(),
         "pytorch": str(torch.__version__),
@@ -210,6 +233,8 @@ def main() -> None:
         "batch_size": args.batch_size,
         "sequence_length": args.seq_len,
         "steps_requested": args.steps,
+        "global_step_start": parent_checkpoint_step + 1,
+        "evaluation_batches_per_split": args.eval_batches,
         "learning_rate": args.learning_rate,
         "weight_decay": args.weight_decay,
         "optimizer": "AdamW",
@@ -222,9 +247,18 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    if args.init_checkpoint:
+        print(
+            f"Warm-starting from project checkpoint step {parent_checkpoint_step} "
+            f"({parent_checkpoint_hash}); AdamW optimizer state is newly initialized."
+        )
+    else:
+        print(
+            f"Starting from random initialization: {config.estimated_parameter_count():,} parameters; "
+            f"vocab={config.vocab_size}; device={device}"
+        )
     print(
-        f"Starting from random initialization: {config.estimated_parameter_count():,} parameters; "
-        f"vocab={config.vocab_size}; device={device}; "
+        f"Model parameters={config.estimated_parameter_count():,}; "
         f"train_tokens={train_data.numel():,}; validation_tokens={validation_data.numel():,}"
     )
     print(
@@ -257,12 +291,13 @@ def main() -> None:
             interval_tokens = (step - last_logged_step) * args.batch_size * args.seq_len
             record = {
                 "step": step,
-                "steps_total": args.steps,
+                "global_step": parent_checkpoint_step + step,
+                "steps_total_this_run": args.steps,
                 "last_train_loss": float(loss.item()),
                 **eval_metrics,
                 "interval_seconds": elapsed_interval,
                 "interval_tokens_per_second": interval_tokens / elapsed_interval,
-                "tokens_seen_by_optimizer": step * args.batch_size * args.seq_len,
+                "tokens_seen_this_run": step * args.batch_size * args.seq_len,
                 "elapsed_seconds": now - start_time,
             }
             if device == "cuda":
@@ -283,11 +318,13 @@ def main() -> None:
             last_logged_step = step
 
     elapsed = time.perf_counter() - start_time
-    checkpoint_size = save_checkpoint(output_path, model, config, args.steps)
+    global_step = parent_checkpoint_step + args.steps
+    checkpoint_size = save_checkpoint(output_path, model, config, global_step)
     metadata.update({
         "status": "completed",
-        "steps_completed": args.steps,
-        "tokens_seen_by_optimizer": args.steps * args.batch_size * args.seq_len,
+        "steps_completed_this_run": args.steps,
+        "global_checkpoint_step": global_step,
+        "tokens_seen_this_run": args.steps * args.batch_size * args.seq_len,
         "elapsed_seconds": elapsed,
         "average_training_tokens_per_second": (
             args.steps * args.batch_size * args.seq_len / max(elapsed, 1e-9)
@@ -302,9 +339,9 @@ def main() -> None:
         encoding="utf-8",
     )
     print(
-        f"Saved from-scratch experimental checkpoint ({checkpoint_size} bytes) to {output_path}. "
-        f"Training tokens={metadata['tokens_seen_by_optimizer']:,}; "
-        f"elapsed={elapsed:.1f}s; average_tokens_per_second="
+        f"Saved experimental checkpoint ({checkpoint_size} bytes) to {output_path}. "
+        f"Tokens in this run={metadata['tokens_seen_this_run']:,}; "
+        f"global_step={global_step}; elapsed={elapsed:.1f}s; average_tokens_per_second="
         f"{metadata['average_training_tokens_per_second']:.1f}. "
         "A valid checkpoint or lower loss is not proof of conversational competence."
     )
