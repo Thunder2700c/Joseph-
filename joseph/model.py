@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 try:
     import torch
     import torch.nn as nn
@@ -86,6 +88,27 @@ class JosephLanguageModel(nn.Module):
         self.final_norm = nn.LayerNorm(config.d_model)
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
         self.lm_head.weight = self.token_embedding.weight
+        self.apply(self._init_weights)
+
+        # Residual branches start smaller so adding many blocks does not
+        # produce excessively large activations at initialization.
+        residual_std = 0.02 / math.sqrt(2 * config.n_layers)
+        for block in self.blocks:
+            nn.init.normal_(block.attention.projection.weight, mean=0.0, std=residual_std)
+            nn.init.normal_(block.mlp.network[2].weight, mean=0.0, std=residual_std)
+
+    @staticmethod
+    def _init_weights(module: nn.Module) -> None:
+        """Use GPT-style small initialization instead of PyTorch's unit-scale embeddings."""
+        if isinstance(module, nn.Linear):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.LayerNorm):
+            nn.init.ones_(module.weight)
+            nn.init.zeros_(module.bias)
 
     def forward(
         self,
@@ -116,9 +139,24 @@ class JosephLanguageModel(nn.Module):
         max_new_tokens: int = 64,
         temperature: float = 1.0,
         top_k: int | None = 40,
+        eos_token_id: int | None = None,
+        pad_token_id: int | None = None,
     ) -> torch.Tensor:
         if temperature < 0:
             raise ValueError("temperature cannot be negative")
+        if max_new_tokens < 0:
+            raise ValueError("max_new_tokens cannot be negative")
+        if eos_token_id is not None and not 0 <= eos_token_id < self.config.vocab_size:
+            raise ValueError("eos_token_id is outside the model vocabulary")
+        if pad_token_id is not None and not 0 <= pad_token_id < self.config.vocab_size:
+            raise ValueError("pad_token_id is outside the model vocabulary")
+
+        finished = torch.zeros(token_ids.size(0), dtype=torch.bool, device=token_ids.device)
+        finished_pad_id = (
+            pad_token_id if pad_token_id is not None
+            else eos_token_id if eos_token_id is not None
+            else 0
+        )
         for _ in range(max_new_tokens):
             logits, _ = self(token_ids[:, -self.config.block_size :])
             next_logits = logits[:, -1, :]
@@ -132,5 +170,17 @@ class JosephLanguageModel(nn.Module):
                         next_logits < threshold, torch.finfo(next_logits.dtype).min
                     )
                 next_token = torch.multinomial(F.softmax(next_logits, dim=-1), num_samples=1)
+
+            # Do not continue emitting arbitrary text after an EOS. For a
+            # mixed-length batch, pad rows that have already finished.
+            was_finished = finished.clone()
+            if was_finished.any():
+                fill = torch.full_like(next_token, finished_pad_id)
+                next_token = torch.where(was_finished[:, None], fill, next_token)
             token_ids = torch.cat((token_ids, next_token), dim=1)
+
+            if eos_token_id is not None:
+                finished |= next_token.squeeze(-1).eq(eos_token_id)
+                if bool(finished.all()):
+                    break
         return token_ids
