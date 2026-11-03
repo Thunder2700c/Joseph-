@@ -2,17 +2,7 @@ name: Hard general-language training with conversation data
 run-name: Train a larger 256-context model on prose plus reviewed OASST1 dialogue
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/train-base-language-hard.yml"
-      - "training/prepare_oasst1_corpus.py"
-      - "training/train.py"
-      - "training/checkpoint.py"
-      - "training/generate_samples.py"
-      - "tests/**"
   workflow_dispatch:
-
 permissions:
   actions: read
   contents: read
@@ -22,7 +12,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-base-corpus:
+    uses: ./.github/workflows/build-base-corpus.yml
+
   train-hard-foundation:
+    needs: build-base-corpus
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:
@@ -50,18 +44,13 @@ jobs:
           python -m compileall -q joseph training tests
           python -m unittest discover -s tests -v
 
-      - name: Download archived 200M-character base corpus and project tokenizer
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p data/corpus
-          gh release download joseph-base-corpus-merged-200m-2026-11-02 \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern joseph-cosmopedia-v2-merged-200m-tokenizer.zip \
-            --dir data/corpus
-          unzip -q data/corpus/joseph-cosmopedia-v2-merged-200m-tokenizer.zip -d data/corpus/merged
+      - name: Download the verified corpus and tokenizer from this workflow run
+        uses: actions/download-artifact@v4
+        with:
+          name: joseph-cosmopedia-v2-merged-200m-tokenizer
+          path: data/corpus/merged
 
-      - name: Verify archived base corpus and tokenizer provenance
+      - name: Verify rebuilt corpus and tokenizer provenance
         run: |
           python - <<'PY'
           import hashlib
