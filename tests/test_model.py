@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch
+import math
 
 try:
     import torch
@@ -23,6 +25,49 @@ class ModelTests(unittest.TestCase):
         model = JosephLanguageModel(config)
         actual = sum(parameter.numel() for parameter in model.parameters())
         self.assertEqual(actual, config.estimated_parameter_count())
+
+    def test_embeddings_use_small_gpt_style_initialization(self):
+        torch.manual_seed(7)
+        config = ModelConfig(
+            vocab_size=270, d_model=32, n_layers=2, n_heads=4,
+            block_size=16, dropout=0.0,
+        )
+        model = JosephLanguageModel(config)
+        self.assertLess(abs(float(model.token_embedding.weight.std()) - 0.02), 0.004)
+        self.assertLess(abs(float(model.position_embedding.weight.std()) - 0.02), 0.004)
+        self.assertIs(model.lm_head.weight, model.token_embedding.weight)
+
+        inputs = torch.randint(0, config.vocab_size, (2, 8))
+        targets = torch.randint(0, config.vocab_size, (2, 8))
+        model.eval()
+        _, loss = model(inputs, targets)
+        # A fresh model should begin near the uniform-vocabulary baseline,
+        # not at the 100+ cross-entropy observed in the previous model.
+        self.assertLess(float(loss), math.log(config.vocab_size) + 0.5)
+        self.assertGreater(float(loss), math.log(config.vocab_size) - 0.5)
+
+    def test_generation_stops_at_eos(self):
+        config = ModelConfig(
+            vocab_size=270, d_model=32, n_layers=1, n_heads=4,
+            block_size=16, dropout=0.0,
+        )
+        model = JosephLanguageModel(config)
+        inputs = torch.randint(0, config.vocab_size, (1, 3))
+
+        def emit_eos(token_ids, targets=None):
+            logits = torch.zeros(
+                token_ids.size(0), token_ids.size(1), config.vocab_size
+            )
+            logits[:, :, 2] = 10.0
+            return logits, None
+
+        with patch.object(model, "forward", side_effect=emit_eos):
+            generated = model.generate(
+                inputs, max_new_tokens=10, temperature=0,
+                eos_token_id=2, pad_token_id=0,
+            )
+        self.assertEqual(tuple(generated.shape), (1, 4))
+        self.assertEqual(int(generated[0, -1]), 2)
 
     def test_logits_loss_and_generation_shapes(self):
         config = ModelConfig(
