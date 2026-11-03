@@ -71,6 +71,8 @@ def main() -> None:
                 max_new_tokens=args.max_new_tokens,
                 temperature=args.temperature,
                 top_k=args.top_k,
+                eos_token_id=tokenizer.special_token_id("<eos>"),
+                pad_token_id=tokenizer.special_token_id("<pad>"),
             )[0].tolist()
         continuation = tokenizer.decode(generated[len(prompt_ids):])
         results.extend((f"## Prompt {index + 1}", prompt, "", continuation, ""))
