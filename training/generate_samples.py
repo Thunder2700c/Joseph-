@@ -15,10 +15,20 @@ from training.checkpoint import load_checkpoint
 
 DEFAULT_PROMPTS = (
     "<|user|> Hello! How has your day been? <|assistant|>",
-    "<|user|> I made a mistake and feel embarrassed. What should I do? <|assistant|>",
     "<|user|> Explain why the sky looks blue in simple words. <|assistant|>",
+    "<|user|> I made a mistake and feel embarrassed. What should I do? <|assistant|>",
     "<|user|> I disagree with your answer. Can you reconsider it? <|assistant|>",
+    "<|user|> Explain compound interest with a small numerical example. <|assistant|>",
+    "<|user|> Give me three practical ways to organize a busy study week. <|assistant|>",
+    "<|user|> What is one important thing people often misunderstand about probability? <|assistant|>",
+    "<|user|> Summarize the difference between a fact, an inference, and a guess. <|assistant|>",
+    "<|user|> I am frustrated and do not want generic motivational advice. Talk to me normally. <|assistant|>",
+    "<|user|> Can you admit when you do not know something instead of inventing an answer? <|assistant|>",
     "<|user|> Tell me a short story about a traveller who gets lost. <|assistant|>",
+    "<|user|> What makes a useful apology? Give a concrete example. <|assistant|>",
+    "<|user|> I have ten minutes and need to understand a difficult topic. How should I use that time? <|assistant|>",
+    "<|user|> What is photosynthesis? <|assistant|> Photosynthesis is the process plants use to turn light, water, and carbon dioxide into stored chemical energy. <|eot|> <|user|> Why does the plant need sunlight for that? <|assistant|>",
+    "<|user|> Can you explain a complicated idea without talking down to me? <|assistant|>",
 )
 
 
