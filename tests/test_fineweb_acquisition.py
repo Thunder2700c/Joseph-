@@ -97,6 +97,11 @@ class FineWebAcquisitionTests(unittest.TestCase):
             self.assertEqual(manifest["dataset_id"], DATASET_ID)
             self.assertEqual(manifest["dataset_revision"], DATASET_REVISION)
             self.assertEqual(manifest["dataset_license"], "ODC-By-1.0")
+            self.assertEqual(manifest["shard"], {
+                "count": 20,
+                "index": 0,
+                "method": "IterableDataset.shard before per-shard shuffle",
+            })
             self.assertEqual(manifest["samples"]["train"] + manifest["samples"]["validation"], 100)
             self.assertEqual(manifest["filter_rejections"]["not_english"], 1)
             self.assertEqual(manifest["filter_rejections"]["language_score_below_threshold"], 1)
