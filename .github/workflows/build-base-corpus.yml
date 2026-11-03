@@ -2,11 +2,8 @@ name: Build 200M Cosmopedia corpus and tokenizer
 run-name: Build remaining 190M corpus shards, reuse verified 10M pilot, then merge to 200M
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/build-base-corpus.yml"
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   actions: read
@@ -18,7 +15,6 @@ concurrency:
 
 jobs:
   acquire-shards:
-    if: github.event_name == 'workflow_dispatch'
     name: Acquire corpus shard ${{ matrix.shard }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -26,7 +22,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - name: Check out project
         uses: actions/checkout@v4
@@ -115,38 +111,6 @@ jobs:
           pattern: cosmopedia-shard-*
           path: artifacts/incoming
           merge-multiple: false
-
-      - name: Reuse the verified 10M pilot as shard 0
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p artifacts/pilot
-          gh run download 41428063861 \
-            --repo "$GITHUB_REPOSITORY" \
-            --name joseph-base-tokenizer-cosmopedia-v2 \
-            --dir artifacts/pilot
-          python - <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-          import shutil
-
-          source = Path("artifacts/pilot/cosmopedia-v2")
-          manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
-          assert manifest["shard"]["count"] == 20
-          assert manifest["shard"]["index"] == 0
-          assert manifest["dataset_revision"] == "3ba9d60"
-          assert manifest["dataset_license"] == "ODC-By-1.0"
-          assert manifest["samples"]["total_characters"] == 9_999_831
-          for name in ("train.txt", "validation.txt"):
-              path = source / name
-              assert hashlib.sha256(path.read_bytes()).hexdigest() == manifest["files"][name]["sha256"]
-          target = Path("artifacts/incoming/cosmopedia-shard-0")
-          target.mkdir(parents=True, exist_ok=True)
-          for name in ("train.txt", "validation.txt", "manifest.json"):
-              shutil.copy2(source / name, target / name)
-          print("Reused verified source shard 0:", manifest["samples"])
-          PY
 
       - name: Globally deduplicate and merge corpus
         run: |
