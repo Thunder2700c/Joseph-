@@ -470,7 +470,7 @@ def main() -> None:
             if amp_enabled and amp_dtype is not None else nullcontext()
         )
         with context:
-            _, loss = model(x, y, batch_mask)
+            _, loss = model(x, y, batch_mask, return_logits=False)
 
         if scaler_enabled:
             old_scale = scaler.get_scale()
