@@ -4,8 +4,8 @@ These rules apply to every future ChatGPT conversation, implementation, training
 
 ## Publishing and external side effects
 
-- Never create, publish, update or delete GitHub Releases, tags, packages, public datasets, public artifacts or other externally visible project distributions without explicit user approval for that specific action. A public repository or successful CI run is not permission to publish.
-- Prefer short-lived GitHub Actions artifacts for training handoff when they are actually needed. Keep corpus data reproducible from pinned public sources and do not create permanent release assets merely for convenience.
+- Never create, publish or update permanent public GitHub Releases, tags, packages, datasets or other lasting public distributions without explicit user approval for that specific action. A public repository or successful CI run is not permission to publish.
+- Short-lived GitHub Actions artifacts may be generated only as necessary internal workflow outputs for training handoff. They are not permanent releases, but in a public repository they can be downloaded by signed-in users with repository read access; never place private user data in them. Keep corpora reproducible from pinned public sources.
 - Never delete an already-published Release or tag without explicit user approval. Treat Release deletion and tag deletion as separate operations and verify both afterward.
 
 ## Hard distributable AI size ceiling
