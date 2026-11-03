@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from joseph.tokenizer import ByteBPETokenizer
+from training.checkpoint import load_checkpoint
 
 
 class TrainingCliSmokeTests(unittest.TestCase):
@@ -58,6 +59,40 @@ class TrainingCliSmokeTests(unittest.TestCase):
             self.assertIn("Saved from-scratch experimental checkpoint", result.stdout)
             self.assertTrue((root / "token_cache" / "train.bin").is_file())
             self.assertTrue((root / "token_cache" / "validation.bin").is_file())
+            first_payload = load_checkpoint(output_file)
+            self.assertEqual(first_payload["step"], 2)
+
+            continued_output = root / "continued.pt"
+            continuation = subprocess.run(
+                [
+                    sys.executable, "-m", "training.train",
+                    "--input", str(train_file),
+                    "--validation", str(validation_file),
+                    "--tokenizer", str(tokenizer_file),
+                    "--output", str(continued_output),
+                    "--init-checkpoint", str(output_file),
+                    "--steps", "1",
+                    "--batch-size", "2",
+                    "--seq-len", "8",
+                    "--d-model", "32",
+                    "--n-layers", "1",
+                    "--n-heads", "4",
+                    "--eval-interval", "1",
+                    "--eval-batches", "1",
+                    "--device", "cpu",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            self.assertEqual(
+                continuation.returncode, 0,
+                msg=continuation.stdout + continuation.stderr,
+            )
+            self.assertIn("Warm-starting from project checkpoint step 2", continuation.stdout)
+            continued_payload = load_checkpoint(continued_output)
+            self.assertEqual(continued_payload["step"], 3)
 
 
 if __name__ == "__main__":
