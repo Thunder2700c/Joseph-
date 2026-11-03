@@ -98,6 +98,7 @@ def main() -> None:
     parser.add_argument("--init-checkpoint", help="continue from a compatible checkpoint; optimizer state is restored when present")
     parser.add_argument("--reset-optimizer", action="store_true", help="start fresh AdamW moments even when the checkpoint contains optimizer state")
     parser.add_argument("--eval-seed", type=int, default=2026, help="fixed seed for comparable evaluation batches")
+    parser.add_argument("--save-interval", type=int, default=0, help="save model and optimizer state every N steps; 0 saves only at the end")
     parser.add_argument("--token-cache-dir", help="directory for disk-backed token caches")
     parser.add_argument("--metrics-file", help="JSONL telemetry output; defaults beside checkpoint")
     parser.add_argument("--run-metadata", help="JSON run metadata output; defaults beside checkpoint")
@@ -121,6 +122,8 @@ def main() -> None:
         parser.error("steps/batch-size must be positive and seq-len must be >= 8")
     if args.eval_interval < 1 or args.eval_batches < 1:
         parser.error("eval-interval and eval-batches must be positive")
+    if args.save_interval < 0:
+        parser.error("save-interval cannot be negative")
     if args.d_model < 1 or args.n_layers < 1 or args.n_heads < 1:
         parser.error("model dimensions must be positive")
     if args.d_model % args.n_heads:
@@ -334,6 +337,26 @@ def main() -> None:
                 f"elapsed_seconds={record['elapsed_seconds']:.1f}",
                 flush=True,
             )
+            if args.save_interval and step % args.save_interval == 0:
+                saved_size = save_checkpoint(
+                    output_path, model, config, parent_checkpoint_step + step,
+                    optimizer=optimizer,
+                )
+                metadata.update({
+                    "status": "running",
+                    "latest_saved_global_step": parent_checkpoint_step + step,
+                    "latest_checkpoint_bytes": saved_size,
+                    "last_checkpoint_saved_unix": time.time(),
+                })
+                metadata_path.write_text(
+                    json.dumps(metadata, ensure_ascii=False, indent=2) + "\\n",
+                    encoding="utf-8",
+                )
+                print(
+                    f"Recovery checkpoint saved at global step {parent_checkpoint_step + step} "
+                    f"({saved_size} bytes).",
+                    flush=True,
+                )
             last_log_time = now
             last_logged_step = step
 
