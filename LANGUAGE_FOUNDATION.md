@@ -38,9 +38,9 @@ GitHub Actions run #69 passed for commit 9f9005a1f92b955e69d85dc97328042aa97bd81
 
 The 10M pilot and full 200M Cosmopedia v2 corpus have now both been acquired, validated and permanently archived as GitHub Releases. The full 200M run completed all 20 source partitions, global deduplication, split-integrity checks, tokenizer fitting, and Unicode checks. It contains 199,947,904 characters (50,907 train samples and 2,687 validation samples); the 8,192-entry tokenizer is 560,288 bytes. Validation text was not used to fit the tokenizer. See the verified run and permanent archive in CONTINUATION_CONTEXT.md.
 
-No neural base model has been trained and no Hu Tao character model exists. The current chat runtime has CPU-only PyTorch, no cached corpus and no outbound access to the dataset. A meaningful base-language training run still needs an external machine with network and suitable training compute.
+The first random-initialized neural base-model calibration pilot has completed in hosted GitHub Actions run [41541564443](https://github.com/Thunder2700c/Joseph-/actions/runs/41541564443). The current chat runtime's local compute limitations did not prevent this hosted experiment. No Hu Tao character model exists, and the calibration checkpoint is not a capable general-language model. See the measured report at [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md).
 
-The default 8,192-vocabulary reference Transformer is approximately 6.90M parameters. A separate 1.86M-parameter configuration is being used for the first CPU calibration run. It is not a plausible finished conversational model merely because it fits a checkpoint or has lower validation loss. The current 200-million-character corpus cap is only a pipeline pilot, roughly tens of millions of tokens, not a serious pretraining budget. For scale context, Hugging Face reports that SmolLM's 135M/360M models were trained on 600B tokens and the 1.7B model on 1T tokens; those runs also used a broader data mixture and are not a direct recipe for this project. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
+The default 8,192-vocabulary reference Transformer is approximately 6.90M parameters. A separate 1.86M-parameter calibration configuration completed its first CPU experiment: 1,858,304 parameters, 1,000 steps, 1,024,000 optimizer token exposures, final training/validation losses of 7.7335/7.8389, final validation perplexity 2,537.51, average training throughput 6,219.78 tokens/sec, 164.64 seconds of training-loop time and a 7,454,309-byte checkpoint. Full details and source hashes are in [reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md](reports/BASE_LANGUAGE_CALIBRATION_2026-11-02.md). This remains a calibration experiment, not a plausible finished conversational model. The 200-million-character corpus cap is only a pipeline pilot, not a serious pretraining budget. The final architecture and token budget must be selected from actual corpus size, measured training throughput, available compute and offline inference constraints.
 
 ## Commands
 
@@ -105,8 +105,8 @@ Cosmopedia v2 supplies educational prose and stories, not authentic conversation
 
 1. Run corpus acquisition and inspect its manifest, token count and licence attribution.
 2. Fit and test the tokenizer on the actual training split, then archive its manifest.
-3. Use the CPU calibration measurements to estimate feasible training time; choose model dimensions and training-token budget from measured throughput rather than guesswork.
-4. Run controlled base training, record loss/perplexity, throughput, peak memory, generation samples and checkpoint size.
+3. Use the completed CPU calibration measurements as an initial throughput baseline, then estimate feasible training time and choose model dimensions/training-token budgets from additional controlled measurements rather than guesswork.
+4. Continue controlled base training with materially more optimizer token exposures; record loss/perplexity, throughput, peak memory, held-out generation samples and checkpoint size.
 5. Continue expanding/reviewing Hu Tao's former-life memories and public Teyvat knowledge.
 6. Once stages 1–9 pass review, build original first-person Hu Tao dialogue data and continue training for her character.
 7. Complete held-out character evaluation before any Android implementation.
