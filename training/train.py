@@ -142,6 +142,8 @@ def main() -> None:
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=0.1)
+    parser.add_argument("--warmup-steps", type=int, default=400)
+    parser.add_argument("--min-learning-rate-ratio", type=float, default=0.1)
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--eval-batches", type=int, default=10)
     parser.add_argument("--seed", type=int, default=1337)
@@ -161,6 +163,8 @@ def main() -> None:
         parser.error("--d-model must be divisible by --n-heads")
     if args.learning_rate <= 0 or args.weight_decay < 0:
         parser.error("learning-rate must be positive and weight-decay cannot be negative")
+    if args.warmup_steps < 0 or not 0.0 <= args.min_learning_rate_ratio <= 1.0:
+        parser.error("warmup-steps must be non-negative and min-learning-rate-ratio must be in [0, 1]")
     if args.num_threads is not None and args.num_threads < 1:
         parser.error("--num-threads must be positive")
 
@@ -240,22 +244,62 @@ def main() -> None:
         model.load_state_dict(parent_payload["model_state"], strict=True)
         parent_checkpoint_step = int(parent_payload["step"])
         initialization = "warm_start_from_project_checkpoint"
+    decay_parameters = []
+    no_decay_parameters = []
+    for parameter_name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        if parameter.ndim >= 2:
+            decay_parameters.append(parameter)
+        else:
+            no_decay_parameters.append(parameter)
     optimizer = torch.optim.AdamW(
-        model.parameters(),
+        [
+            {"params": decay_parameters, "weight_decay": args.weight_decay, "group_name": "matrix_weights"},
+            {"params": no_decay_parameters, "weight_decay": 0.0, "group_name": "biases_and_norms"},
+        ],
         lr=args.learning_rate,
-        weight_decay=args.weight_decay,
     )
     if args.init_checkpoint and parent_payload is not None:
         if parent_payload.get("optimizer_state") is not None and not args.reset_optimizer:
-            optimizer.load_state_dict(parent_payload["optimizer_state"])
-            for group in optimizer.param_groups:
-                group["lr"] = args.learning_rate
-                group["weight_decay"] = args.weight_decay
-            optimizer_state_status = "restored_adamw_state"
+            try:
+                optimizer.load_state_dict(parent_payload["optimizer_state"])
+                optimizer_state_status = "restored_adamw_state"
+            except ValueError:
+                # Old experimental checkpoints used one parameter group with
+                # decay on every tensor. Start fresh moments rather than
+                # silently applying the wrong decay policy.
+                optimizer_state_status = "new_adamw_state_group_layout_changed"
         else:
             optimizer_state_status = "new_adamw_state"
     else:
         optimizer_state_status = "not_applicable_random_initialization"
+
+    for group in optimizer.param_groups:
+        group["lr"] = args.learning_rate
+    optimizer.param_groups[0]["weight_decay"] = args.weight_decay
+    optimizer.param_groups[1]["weight_decay"] = 0.0
+
+    def learning_rate_multiplier(step_index: int) -> float:
+        if args.warmup_steps > 0 and step_index < args.warmup_steps:
+            return max((step_index + 1) / args.warmup_steps, 1e-6)
+        decay_steps = max(args.steps - args.warmup_steps, 1)
+        progress = min(max((step_index - args.warmup_steps) / decay_steps, 0.0), 1.0)
+        cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
+        return args.min_learning_rate_ratio + (1.0 - args.min_learning_rate_ratio) * cosine
+
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer, lr_lambda=learning_rate_multiplier
+    )
+    if (
+        args.init_checkpoint
+        and parent_payload is not None
+        and parent_payload.get("scheduler_state") is not None
+    ):
+        scheduler.load_state_dict(parent_payload["scheduler_state"])
+        scheduler_state_status = "restored"
+    else:
+        scheduler_state_status = "fresh_schedule"
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -301,7 +345,11 @@ def main() -> None:
         "evaluation_batches_are_fixed": True,
         "learning_rate": args.learning_rate,
         "weight_decay": args.weight_decay,
-        "optimizer": "AdamW",
+        "optimizer": "AdamW with no-decay bias/LayerNorm group",
+        "learning_rate_schedule": "linear_warmup_cosine_decay",
+        "warmup_steps": args.warmup_steps,
+        "minimum_learning_rate_ratio": args.min_learning_rate_ratio,
+        "scheduler_state": scheduler_state_status,
         "checkpoint_path": str(output_path),
         "metrics_path": str(metrics_path),
         "started_unix": time.time(),
@@ -347,6 +395,7 @@ def main() -> None:
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
+        scheduler.step()
 
         if step == 1 or step % args.eval_interval == 0 or step == args.steps:
             eval_metrics = estimate_loss(
@@ -368,6 +417,7 @@ def main() -> None:
                 "interval_tokens_per_second": interval_tokens / elapsed_interval,
                 "tokens_seen_this_run": step * args.batch_size * args.seq_len,
                 "elapsed_seconds": now - start_time,
+                "learning_rate": optimizer.param_groups[0]["lr"],
             }
             if device == "cuda":
                 record["cuda_peak_memory_bytes"] = torch.cuda.max_memory_allocated()
@@ -387,6 +437,7 @@ def main() -> None:
                 saved_size = save_checkpoint(
                     output_path, model, config, parent_checkpoint_step + step,
                     optimizer=optimizer,
+                    scheduler=scheduler,
                 )
                 metadata.update({
                     "status": "running",
@@ -408,7 +459,10 @@ def main() -> None:
 
     elapsed = time.perf_counter() - start_time
     global_step = parent_checkpoint_step + args.steps
-    checkpoint_size = save_checkpoint(output_path, model, config, global_step, optimizer=optimizer)
+    checkpoint_size = save_checkpoint(
+        output_path, model, config, global_step,
+        optimizer=optimizer, scheduler=scheduler,
+    )
     metadata.update({
         "status": "completed",
         "steps_completed_this_run": args.steps,
