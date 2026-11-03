@@ -1,5 +1,5 @@
 name: Build 200M Cosmopedia corpus and tokenizer
-run-name: Build remaining 190M corpus shards, reuse verified 10M pilot, then merge to 200M
+run-name: Rebuild all 20 pinned Cosmopedia shards, merge corpus and fit tokenizer
 
 on:
   workflow_dispatch:
