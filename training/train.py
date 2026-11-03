@@ -356,6 +356,13 @@ def main() -> None:
     else:
         scheduler_state_status = "fresh_schedule"
 
+    schedule_step_start = scheduler.last_epoch if scheduler_state_status == "restored" else 0
+    if schedule_step_start + args.steps > schedule_total_steps:
+        parser.error(
+            f"this run would advance the scheduler to {schedule_step_start + args.steps}, "
+            f"past schedule-total-steps={schedule_total_steps}"
+        )
+
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     metrics_path = Path(args.metrics_file) if args.metrics_file else Path(str(output_path) + ".metrics.jsonl")
@@ -422,12 +429,6 @@ def main() -> None:
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-
-    if parent_checkpoint_step + args.steps > schedule_total_steps:
-        parser.error(
-            f"global checkpoint step {parent_checkpoint_step + args.steps} would exceed "
-            f"schedule-total-steps={schedule_total_steps}"
-        )
 
     if args.init_checkpoint:
         print(
