@@ -118,7 +118,7 @@ def estimate_loss(
                 if amp_enabled and amp_dtype is not None else nullcontext()
             )
             with context:
-                _, loss = model(x, y, batch_mask)
+                _, loss = model(x, y, batch_mask, return_logits=False)
             losses.append(float(loss.item()))
         mean_loss = sum(losses) / len(losses)
         metrics[f"{name}_loss"] = mean_loss
@@ -159,6 +159,7 @@ def main() -> None:
     parser.add_argument("--num-threads", type=int, help="limit CPU threads for reproducible hosted runs")
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--amp-dtype", default="auto", choices=["auto", "none", "float16", "bfloat16"])
+    parser.add_argument("--data-parallel", choices=["auto", "off"], default="auto")
     args = parser.parse_args()
 
     if args.steps < 1 or args.batch_size < 1 or args.seq_len < 8:
@@ -246,7 +247,7 @@ def main() -> None:
         dropout=args.dropout,
     )
     config.validate()
-    model = JosephLanguageModel(config).to(device)
+    base_model = JosephLanguageModel(config).to(device)
     parent_checkpoint_step = 0
     parent_checkpoint_hash = None
     parent_payload = None
@@ -263,9 +264,18 @@ def main() -> None:
                 "initial checkpoint config does not exactly match requested model config: "
                 f"checkpoint={parent_config.to_dict()} requested={config.to_dict()}"
             )
-        model.load_state_dict(parent_payload["model_state"], strict=True)
+        base_model.load_state_dict(parent_payload["model_state"], strict=True)
         parent_checkpoint_step = int(parent_payload["step"])
         initialization = "warm_start_from_project_checkpoint"
+
+    data_parallel_enabled = (
+        device == "cuda"
+        and args.data_parallel == "auto"
+        and torch.cuda.device_count() > 1
+    )
+    model: torch.nn.Module = (
+        torch.nn.DataParallel(base_model) if data_parallel_enabled else base_model
+    )
     decay_parameters = []
     no_decay_parameters = []
     for parameter_name, parameter in model.named_parameters():
@@ -327,6 +337,8 @@ def main() -> None:
         scaler_state_status = "fresh_or_disabled"
     if (
         args.init_checkpoint
+        and not args.reset_optimizer
+        and optimizer_state_status == "restored_adamw_state"
         and parent_payload is not None
         and parent_payload.get("scheduler_state") is not None
     ):
@@ -390,6 +402,12 @@ def main() -> None:
         "minimum_learning_rate_ratio": args.min_learning_rate_ratio,
         "scheduler_state": scheduler_state_status,
         "mixed_precision": str(amp_dtype) if amp_enabled else "disabled",
+        "data_parallel": data_parallel_enabled,
+        "cuda_device_count": torch.cuda.device_count() if device == "cuda" else 0,
+        "cuda_device_names": (
+            [torch.cuda.get_device_name(index) for index in range(torch.cuda.device_count())]
+            if device == "cuda" else []
+        ),
         "gradient_scaler_state": scaler_state_status,
         "checkpoint_path": str(output_path),
         "metrics_path": str(metrics_path),
