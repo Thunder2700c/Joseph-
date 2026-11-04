@@ -355,11 +355,6 @@ def main() -> None:
         and parent_payload.get("scheduler_state") is not None
     ):
         scheduler.load_state_dict(parent_payload["scheduler_state"])
-        for group, base_lr, multiplier in zip(
-            optimizer.param_groups, scheduler.base_lrs, scheduler.lr_lambdas
-        ):
-            if callable(multiplier):
-                group["lr"] = base_lr * multiplier(scheduler.last_epoch)
         scheduler_state_status = "restored"
     else:
         scheduler_state_status = "fresh_schedule"
@@ -370,6 +365,14 @@ def main() -> None:
             schedule_total_steps = max(schedule_total_steps, saved_schedule_total)
         if args.schedule_total_steps is None:
             schedule_total_steps = max(schedule_total_steps, scheduler.last_epoch + args.steps)
+        # Recompute the current LR only after the effective horizon is restored.
+        # Otherwise the first resumed optimizer update uses a stale LR computed
+        # against this invocation's short --steps value.
+        for group, base_lr, multiplier in zip(
+            optimizer.param_groups, scheduler.base_lrs, scheduler.lr_lambdas
+        ):
+            if callable(multiplier):
+                group["lr"] = base_lr * multiplier(scheduler.last_epoch)
 
     schedule_step_start = scheduler.last_epoch if scheduler_state_status == "restored" else 0
     if schedule_step_start + args.steps > schedule_total_steps:
@@ -422,6 +425,7 @@ def main() -> None:
         "evaluation_seed": args.eval_seed,
         "evaluation_batches_are_fixed": True,
         "learning_rate": args.learning_rate,
+        "initial_effective_learning_rate": optimizer.param_groups[0]["lr"],
         "weight_decay": args.weight_decay,
         "optimizer": "AdamW with no-decay bias/LayerNorm group",
         "learning_rate_schedule": "linear_warmup_cosine_decay",

@@ -1,4 +1,5 @@
 import json
+import math
 import subprocess
 import sys
 import tempfile
@@ -44,6 +45,9 @@ class TrainingCliSmokeTests(unittest.TestCase):
                     "--tokenizer", str(tokenizer_file),
                     "--output", str(output_file),
                     "--steps", "3",
+                    "--learning-rate", "0.0002",
+                    "--warmup-steps", "0",
+                    "--min-learning-rate-ratio", "0.1",
                     "--batch-size", "2",
                     "--seq-len", "16",
                     "--d-model", "32",
@@ -132,6 +136,9 @@ class TrainingCliSmokeTests(unittest.TestCase):
                     "--output", str(continued_output),
                     "--init-checkpoint", str(output_file),
                     "--steps", "1",
+                    "--learning-rate", "0.0002",
+                    "--warmup-steps", "0",
+                    "--min-learning-rate-ratio", "0.1",
                     "--batch-size", "2",
                     "--seq-len", "16",
                     "--d-model", "32",
@@ -161,6 +168,18 @@ class TrainingCliSmokeTests(unittest.TestCase):
                 continued_metadata["optimizer_state"],
                 "restored_adamw_state",
             )
+            # The parent ran 3/3 steps. Extending its saved schedule to step 4
+            # means the first resumed update must use the step-3 LR on a 4-step
+            # cosine horizon, not the clamped minimum LR from a 1-step horizon.
+            expected_resume_lr = 0.0002 * (
+                0.1 + 0.9 * 0.5 * (1.0 + math.cos(math.pi * 3 / 4))
+            )
+            self.assertAlmostEqual(
+                continued_metadata["initial_effective_learning_rate"],
+                expected_resume_lr,
+                places=10,
+            )
+            self.assertEqual(continued_metadata["schedule_total_steps"], 4)
 
 
 if __name__ == "__main__":
