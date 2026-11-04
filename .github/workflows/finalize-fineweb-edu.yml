@@ -2,7 +2,7 @@ name: Finalize FineWeb-Edu trained model
 
 on:
   workflow_run:
-    workflows: ["FineWeb-Edu general-language training"]
+    workflows: ["FineWeb-Edu general-language training", "FineWeb-Edu + reviewed dialogue, 13.9M parameter from-scratch model"]
     types: [completed]
     branches: [main]
 
