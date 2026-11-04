@@ -19,6 +19,7 @@ def save_checkpoint(
     optimizer: torch.optim.Optimizer | None = None,
     scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     scaler: torch.cuda.amp.GradScaler | None = None,
+    schedule_total_steps: int | None = None,
 ) -> int:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -27,6 +28,9 @@ def save_checkpoint(
         "format": "joseph-state-v1",
         "config": config.to_dict(),
         "step": int(step),
+        "schedule_total_steps": (
+            int(schedule_total_steps) if schedule_total_steps is not None else None
+        ),
         "model_state": source_model.state_dict(),
     }
     if optimizer is not None:
