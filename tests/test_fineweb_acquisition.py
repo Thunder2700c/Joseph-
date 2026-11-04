@@ -82,7 +82,10 @@ class FineWebAcquisitionTests(unittest.TestCase):
             fineweb_row(101, language_score=0.5),
             fineweb_row(102, int_score=3),
             fineweb_row(103, token_count=50),
-            fineweb_row(104, text="Contact the author at private.person@example.org for more information."),
+            fineweb_row(104, text=(
+                "Contact the author at private.person@example.org for more information. "
+                + "This educational document contains enough ordinary text to pass the length filter. " * 5
+            )),
         ]
         with tempfile.TemporaryDirectory() as directory:
             manifest = write_corpus(
@@ -129,7 +132,9 @@ class FineWebAcquisitionTests(unittest.TestCase):
     def test_generic_merger_keeps_fineweb_filter_and_license_provenance(self):
         def sample_for(split, prefix):
             for index in range(1000):
-                text = f"{prefix} {index}. " + ("A sufficiently long educational content phrase. " * 8)
+                text = " ".join(
+                    (f"{prefix} {index}. " + ("A sufficiently long educational content phrase. " * 8)).split()
+                )
                 bucket = int(hashlib.sha256(text.casefold().encode()).hexdigest()[:8], 16) % 100
                 assigned = "validation" if bucket < 50 else "train"
                 if assigned == split:
