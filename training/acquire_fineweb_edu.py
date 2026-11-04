@@ -72,8 +72,8 @@ def write_corpus(
         raise ValueError("min_language_score must be in [0, 1]")
     if min_educational_score < 0:
         raise ValueError("min_educational_score cannot be negative")
-    if not 1 <= validation_percent <= 49:
-        raise ValueError("validation_percent must be between 1 and 49")
+    if not 1 <= validation_percent <= 99:
+        raise ValueError("validation_percent must be between 1 and 99")
 
     target = Path(output_dir)
     target.mkdir(parents=True, exist_ok=True)
