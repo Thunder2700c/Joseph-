@@ -35,7 +35,8 @@ class DiskBackedTrainingTests(unittest.TestCase):
                 int((tokens == tokenizer.special_token_id("<eos>")).sum()),
                 len(samples),
             )
-            x, y = get_batch(tokens, batch_size=2, seq_len=8, device="cpu")
+            x, y, mask = get_batch(tokens, batch_size=2, seq_len=8, device="cpu")
+            self.assertIsNone(mask)
             self.assertEqual(tuple(x.shape), (2, 8))
             self.assertEqual(tuple(y.shape), (2, 8))
             self.assertTrue(torch.equal(x[:, 1:], y[:, :-1]))
