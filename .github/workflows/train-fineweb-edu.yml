@@ -1,0 +1,493 @@
+name: FineWeb-Edu general-language training
+run-name: FineWeb-Edu + reviewed dialogue, 13.9M parameter from-scratch model
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/train-fineweb-edu.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: joseph-fineweb-edu-pilot
+  cancel-in-progress: false
+
+jobs:
+  verify-source:
+    name: Verify code and training pipeline tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install numpy "tokenizers>=0.21,<1"
+
+      - name: Run the full test suite and compile checks
+        run: |
+          python -m compileall -q joseph training tests
+          python -m unittest discover -s tests -v
+
+  acquire-fineweb:
+    name: Acquire FineWeb-Edu shard ${{ matrix.shard }}
+    needs: verify-source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install streaming dataset dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "datasets==3.3.2"
+
+      - name: Acquire pinned English educational documents
+        run: |
+          python -m training.acquire_fineweb_edu \
+            --output-dir artifacts/fineweb-shard-${{ matrix.shard }} \
+            --num-shards 4 \
+            --shard-index ${{ matrix.shard }} \
+            --max-samples 12000 \
+            --max-characters 5000000 \
+            --min-characters 200 \
+            --max-document-characters 100000 \
+            --min-language-score 0.90 \
+            --min-educational-score 4 \
+            --min-source-tokens 100 \
+            --max-source-tokens 30000 \
+            --validation-percent 5 \
+            --seed 2026 \
+            --shuffle-buffer 2000
+
+      - name: Verify shard contents and provenance
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/fineweb-shard-${{ matrix.shard }}")
+          manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+          assert manifest["dataset_id"] == "HuggingFaceFW/fineweb-edu"
+          assert manifest["dataset_revision"] == "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9"
+          assert manifest["dataset_license"] == "ODC-By-1.0"
+          assert manifest["shard"]["count"] == 4
+          assert manifest["shard"]["index"] == ${{ matrix.shard }}
+          assert manifest["samples"]["train"] > 0
+          assert manifest["samples"]["validation"] > 0
+          assert manifest["samples"]["total_characters"] <= 5_000_000
+          assert manifest["private_user_conversations_included"] is False
+          assert manifest["hu_tao_identity_material_included"] is False
+          print(json.dumps({
+              "shard": manifest["shard"],
+              "rows_seen": manifest["rows_seen"],
+              "samples": manifest["samples"],
+              "filter_rejections": manifest["filter_rejections"],
+              "license": manifest["dataset_license"],
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload temporary source shard
+        uses: actions/upload-artifact@v4
+        with:
+          name: fineweb-shard-${{ matrix.shard }}
+          path: artifacts/fineweb-shard-${{ matrix.shard }}/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 2
+
+  prepare-corpus:
+    name: Merge FineWeb-Edu shards and rebuild tokenizer
+    needs: acquire-fineweb
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tokenizer dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "tokenizers>=0.21,<1"
+
+      - name: Download all four disjoint FineWeb-Edu shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fineweb-shard-*
+          path: artifacts/incoming
+          merge-multiple: false
+
+      - name: Verify, globally deduplicate and merge all shards
+        run: |
+          python -m training.merge_corpus_shards \
+            --input-root artifacts/incoming \
+            --output-dir artifacts/base_language/fineweb-edu \
+            --expected-shards 4 \
+            --max-characters 20000000 \
+            --shard-prefix fineweb-shard-
+
+      - name: Fit the new 8192-token ByteLevel BPE tokenizer on FineWeb training text only
+        run: |
+          python -m training.train_tokenizer \
+            --input artifacts/base_language/fineweb-edu/train.txt \
+            --output artifacts/base_language/tokenizer.json \
+            --vocab-size 8192 \
+            --min-frequency 2
+
+      - name: Validate source hashes, tokenizer identity and Unicode
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from joseph.tokenizer import ByteBPETokenizer, SPECIAL_TOKENS
+
+          root = Path("artifacts/base_language")
+          corpus = root / "fineweb-edu"
+          tokenizer_path = root / "tokenizer.json"
+          manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+          tokenizer_manifest = json.loads(
+              (root / "tokenizer.json.manifest.json").read_text(encoding="utf-8")
+          )
+
+          def sha256(path):
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          tokenizer = ByteBPETokenizer.load(tokenizer_path)
+          assert manifest["dataset_id"] == "HuggingFaceFW/fineweb-edu"
+          assert manifest["dataset_revision"] == "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9"
+          assert manifest["dataset_license"] == "ODC-By-1.0"
+          assert len(manifest["shards"]) == 4
+          assert manifest["selection"]["expected_shards"] == 4
+          assert manifest["samples"]["train"] > 0
+          assert manifest["samples"]["validation"] > 0
+          assert manifest["samples"]["total_characters"] <= 20_000_000
+          assert tokenizer.vocab_size == 8192, tokenizer.vocab_size
+          assert tokenizer_manifest["tokenizer_vocab_size"] == 8192
+          assert tokenizer_manifest["special_tokens"] == list(SPECIAL_TOKENS)
+          assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["tokenizer_sha256"] == sha256(tokenizer_path)
+          assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
+
+          samples = [
+              "Hu Tao — Wangsheng Funeral Parlor, Liyue Harbor.",
+              "Teyvat includes Mondstadt, Liyue, Inazuma, Sumeru and Fontaine.",
+              "Unicode: 你好，世界！ Привет мир! ਪੰਜਾਬੀ 😀 🎭",
+          ]
+          for sample in samples:
+              assert tokenizer.decode(tokenizer.encode(sample)) == sample
+
+          print(json.dumps({
+              "dataset": manifest["dataset_id"],
+              "revision": manifest["dataset_revision"],
+              "license": manifest["dataset_license"],
+              "source_shards": len(manifest["shards"]),
+              "samples": manifest["samples"],
+              "tokenizer_vocab_size": tokenizer.vocab_size,
+              "tokenizer_sha256": tokenizer_manifest["tokenizer_sha256"],
+              "unicode_round_trips": len(samples),
+              "validation_used_for_tokenizer": False,
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Include source licence caveats and provenance
+        run: cp datasets/base_language/FINEWEB_EDU.md artifacts/base_language/FINEWEB_EDU.md
+
+      - name: Upload merged corpus and rebuilt tokenizer for training handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-fineweb-edu-corpus-tokenizer
+          path: |
+            artifacts/base_language/FINEWEB_EDU.md
+            artifacts/base_language/fineweb-edu/train.txt
+            artifacts/base_language/fineweb-edu/validation.txt
+            artifacts/base_language/fineweb-edu/manifest.json
+            artifacts/base_language/tokenizer.json
+            artifacts/base_language/tokenizer.json.manifest.json
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 2
+
+  train-general-language:
+    name: Train 13.9M parameter base model from random initialization
+    needs: prepare-corpus
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU training and dialogue dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install numpy "tokenizers>=0.21,<1" "datasets==3.3.2"
+
+      - name: Download verified FineWeb-Edu corpus and newly rebuilt tokenizer
+        uses: actions/download-artifact@v4
+        with:
+          name: joseph-fineweb-edu-corpus-tokenizer
+          path: data/corpus/fineweb-edu
+
+      - name: Verify source corpus and tokenizer handoff
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("data/corpus/fineweb-edu")
+          corpus = root / "fineweb-edu"
+          manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+          tokenizer_manifest = json.loads(
+              (root / "tokenizer.json.manifest.json").read_text(encoding="utf-8")
+          )
+
+          def sha256(path):
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          assert manifest["dataset_id"] == "HuggingFaceFW/fineweb-edu"
+          assert manifest["dataset_revision"] == "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9"
+          assert len(manifest["shards"]) == 4
+          assert tokenizer_manifest["tokenizer_sha256"] == sha256(root / "tokenizer.json")
+          assert tokenizer_manifest["input_sha256"] == sha256(corpus / "train.txt")
+          assert tokenizer_manifest["validation_or_test_text_used_for_fitting"] is False
+          assert manifest["private_user_conversations_included"] is False
+          assert manifest["traveler_private_story_information_included"] is False
+          print(json.dumps({
+              "base_training_samples": manifest["samples"]["train"],
+              "base_validation_samples": manifest["samples"]["validation"],
+              "base_characters": manifest["samples"]["total_characters"],
+              "tokenizer_vocab_size": tokenizer_manifest["tokenizer_vocab_size"],
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Build reviewed OASST1 and human-authored Dolly dialogue mixture
+        run: |
+          python -m training.prepare_dialogue_corpus \
+            --base-train data/corpus/fineweb-edu/fineweb-edu/train.txt \
+            --base-validation data/corpus/fineweb-edu/fineweb-edu/validation.txt \
+            --tokenizer data/corpus/fineweb-edu/tokenizer.json \
+            --output-dir data/corpus/mixed \
+            --dialogue-fraction 0.35 \
+            --validation-percent 5 \
+            --seed 2026
+
+      - name: Verify dialogue quality filters, split and mixture share
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("data/corpus/mixed")
+          source = json.loads((root / "dialogue-source-report.json").read_text(encoding="utf-8"))
+          mixture = json.loads((root / "mixture-report.json").read_text(encoding="utf-8"))
+          assert source["hu_tao_identity_data_included"] is False
+          assert source["private_chat_history_included"] is False
+          assert source["sources"]["oasst1"]["train_validation_tree_overlap"] == 0
+          assert source["sources"]["oasst1"]["synthetic_records_allowed"] is False
+          assert source["sources"]["dolly_15k"]["license"] == "CC-BY-SA-3.0"
+          assert source["train_samples"] > 0 and source["validation_samples"] > 0
+          assert 0.35 <= mixture["dialogue_token_fraction_achieved_estimate"] < 0.50
+          assert mixture["train_token_count_estimate"] > 0
+          print(json.dumps({
+              "dialogue_train_samples": source["train_samples"],
+              "dialogue_validation_samples": source["validation_samples"],
+              "oasst_tree_overlap": source["sources"]["oasst1"]["train_validation_tree_overlap"],
+              "dialogue_repetitions": mixture["dialogue_train_repetitions"],
+              "dialogue_token_fraction": mixture["dialogue_token_fraction_achieved_estimate"],
+              "estimated_mixed_train_tokens": mixture["train_token_count_estimate"],
+              "private_user_chats_included": source["private_chat_history_included"],
+              "Hu_Tao_identity_material_included": source["hu_tao_identity_data_included"],
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Train from scratch with assistant-only dialogue loss (10.24M token exposures)
+        run: |
+          python -m training.train \
+            --input data/corpus/mixed/train.txt \
+            --validation data/corpus/mixed/validation.txt \
+            --tokenizer data/corpus/fineweb-edu/tokenizer.json \
+            --output artifacts/base_language/fineweb-edu/base-language.pt \
+            --token-cache-dir work/token-cache \
+            --metrics-file artifacts/base_language/fineweb-edu/base-language.metrics.jsonl \
+            --run-metadata artifacts/base_language/fineweb-edu/base-language.run.json \
+            --steps 10000 \
+            --schedule-total-steps 10000 \
+            --batch-size 4 \
+            --seq-len 256 \
+            --d-model 384 \
+            --n-layers 6 \
+            --n-heads 6 \
+            --dropout 0.1 \
+            --learning-rate 0.0002 \
+            --weight-decay 0.1 \
+            --warmup-steps 500 \
+            --min-learning-rate-ratio 0.1 \
+            --eval-interval 1000 \
+            --eval-batches 16 \
+            --eval-seed 2026 \
+            --save-interval 2000 \
+            --seed 2026 \
+            --num-threads 2 \
+            --device cpu \
+            --amp-dtype none \
+            --data-parallel off
+
+      - name: Verify completed training run and export inference-only weights
+        if: success()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import torch
+          from joseph.config import ModelConfig
+          from training.validate_ai_bundle import validate_ai_bundle
+
+          root = Path("artifacts/base_language/fineweb-edu")
+          run_path = root / "base-language.run.json"
+          checkpoint_path = root / "base-language.pt"
+          run = json.loads(run_path.read_text(encoding="utf-8"))
+          assert run["status"] == "completed", run["status"]
+          assert run["steps_requested"] == 10000
+          assert run["steps_requested"] * run["batch_size"] * run["sequence_length"] == 10_240_000
+          assert run["train_dialogue_sample_count"] > 0
+          assert run["validation_dialogue_sample_count"] > 0
+          assert run["train_loss_target_count"] > 0
+          assert run["validation_loss_target_count"] > 0
+          assert run["initialization"] == "random_initialization"
+
+          config = ModelConfig.from_dict(run["model_config"])
+          assert config.d_model == 384 and config.n_layers == 6 and config.n_heads == 6
+          inference = root / "inference"
+          inference.mkdir(parents=True, exist_ok=True)
+          payload = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+          for key in ("optimizer_state", "scheduler_state", "scaler_state", "schedule_total_steps"):
+              payload.pop(key, None)
+          inference_checkpoint = inference / "model.pt"
+          torch.save(payload, inference_checkpoint)
+          (inference / "config.json").write_text(
+              json.dumps(config.to_dict(), ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          import shutil
+          shutil.copy2("data/corpus/fineweb-edu/tokenizer.json", inference / "tokenizer.json")
+          report = validate_ai_bundle(inference)
+          assert report["within_limit"] is True
+          print(json.dumps({
+              "training_status": run["status"],
+              "steps": run["steps_requested"],
+              "tokens_seen": run["tokens_seen_this_run"],
+              "parameters": run["estimated_parameters"],
+              "training_checkpoint_bytes": checkpoint_path.stat().st_size,
+              "inference_bundle": report,
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Generate 15 conversational diagnostic samples
+        if: success()
+        run: |
+          python -m training.generate_samples \
+            --checkpoint artifacts/base_language/fineweb-edu/base-language.pt \
+            --tokenizer data/corpus/fineweb-edu/tokenizer.json \
+            --output artifacts/base_language/fineweb-edu/base-language.samples.md \
+            --max-new-tokens 120 \
+            --temperature 0.8 \
+            --top-k 40 \
+            --seed 2026
+
+      - name: Create a compact pilot report
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/base_language/fineweb-edu")
+          report = {
+              "project": "Hu Tao offline AI",
+              "identity_material_used": False,
+              "private_user_chat_history_used": False,
+              "training_workflow": "FineWeb-Edu + OASST1 + Dolly 15K",
+              "status": "completed" if (root / "base-language.run.json").exists()
+                       and json.loads((root / "base-language.run.json").read_text()).get("status") == "completed"
+                       else "incomplete_or_failed",
+          }
+          for name in ("base-language.run.json", "base-language.samples.md", "base-language.metrics.jsonl"):
+              path = root / name
+              if path.exists():
+                  report[name] = {"bytes": path.stat().st_size}
+          (root / "pilot-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload training checkpoint, diagnostics and inference-only bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-fineweb-edu-pilot-${{ github.run_id }}
+          path: |
+            artifacts/base_language/FINEWEB_EDU.md
+            artifacts/base_language/fineweb-edu/manifest.json
+            artifacts/base_language/tokenizer.json
+            artifacts/base_language/tokenizer.json.manifest.json
+            data/corpus/mixed/mixture-report.json
+            data/corpus/mixed/dialogue-source-report.json
+            data/corpus/mixed/dialogue-attribution.md
+            artifacts/base_language/fineweb-edu/base-language.pt
+            artifacts/base_language/fineweb-edu/base-language.metrics.jsonl
+            artifacts/base_language/fineweb-edu/base-language.run.json
+            artifacts/base_language/fineweb-edu/base-language.samples.md
+            artifacts/base_language/fineweb-edu/pilot-report.json
+            artifacts/base_language/fineweb-edu/inference/
+          if-no-files-found: ignore
+          compression-level: 6
+          retention-days: 30
