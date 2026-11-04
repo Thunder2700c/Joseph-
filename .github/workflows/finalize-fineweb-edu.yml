@@ -1,0 +1,213 @@
+name: Finalize FineWeb-Edu trained model
+
+on:
+  workflow_run:
+    workflows: ["FineWeb-Edu general-language training"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify-training-artifact:
+    name: Recover and verify completed training checkpoint
+    if: github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download the exact completed training run artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          mkdir -p artifacts/source
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "joseph-fineweb-edu-pilot-$SOURCE_RUN_ID" \
+            --dir artifacts/source
+
+      - name: Confirm that a complete 10,000-step checkpoint exists
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/source")
+          checkpoint = root / "artifacts/base_language/fineweb-edu/base-language.pt"
+          run_path = root / "artifacts/base_language/fineweb-edu/base-language.run.json"
+          tokenizer = root / "artifacts/base_language/tokenizer.json"
+          assert checkpoint.is_file() and checkpoint.stat().st_size > 0
+          assert run_path.is_file() and tokenizer.is_file()
+          run = json.loads(run_path.read_text(encoding="utf-8"))
+          assert run["status"] == "completed", run.get("status")
+          assert run["initialization"] == "random"
+          assert run["steps_requested"] == 10000
+          assert run["tokens_seen_this_run"] == 10_240_000
+          assert run["train_dialogue_sample_count"] > 0
+          assert run["validation_dialogue_sample_count"] > 0
+          print(json.dumps({
+              "training_status": run["status"],
+              "initialization": run["initialization"],
+              "steps": run["steps_requested"],
+              "tokens_seen": run["tokens_seen_this_run"],
+              "parameters": run["estimated_parameters"],
+              "checkpoint_bytes": checkpoint.stat().st_size,
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Pass verified files to finalization
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-fineweb-edu-finalize-input-${{ github.event.workflow_run.id }}
+          path: artifacts/source/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 2
+
+  finalize-model:
+    name: Export and generate diagnostics (no retraining)
+    needs: verify-training-artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    concurrency:
+      group: joseph-fineweb-edu-pilot
+      cancel-in-progress: true
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU inference dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install numpy "tokenizers>=0.21,<1"
+
+      - name: Download verified training output
+        uses: actions/download-artifact@v4
+        with:
+          name: joseph-fineweb-edu-finalize-input-${{ github.event.workflow_run.id }}
+          path: artifacts/source
+
+      - name: Export inference-only checkpoint and validate complete offline bundle
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          import torch
+          from joseph.config import ModelConfig
+          from training.validate_ai_bundle import validate_ai_bundle
+
+          root = Path("artifacts/source")
+          model_root = root / "artifacts/base_language/fineweb-edu"
+          source_checkpoint = model_root / "base-language.pt"
+          run = json.loads((model_root / "base-language.run.json").read_text(encoding="utf-8"))
+          config = ModelConfig.from_dict(run["model_config"])
+
+          inference = model_root / "inference"
+          inference.mkdir(parents=True, exist_ok=True)
+          payload = torch.load(source_checkpoint, map_location="cpu", weights_only=True)
+          for key in ("optimizer_state", "scheduler_state", "scaler_state", "schedule_total_steps"):
+              payload.pop(key, None)
+          torch.save(payload, inference / "model.pt")
+          (inference / "config.json").write_text(
+              json.dumps(config.to_dict(), ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          shutil.copy2(root / "artifacts/base_language/tokenizer.json", inference / "tokenizer.json")
+
+          report = validate_ai_bundle(inference)
+          assert report["within_limit"] is True
+          (model_root / "inference-bundle-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({
+              "parameters": run["estimated_parameters"],
+              "training_checkpoint_bytes": source_checkpoint.stat().st_size,
+              "inference_bundle": report,
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Generate 15 conversational diagnostic samples from trained model
+        run: |
+          python -m training.generate_samples \
+            --checkpoint artifacts/source/artifacts/base_language/fineweb-edu/base-language.pt \
+            --tokenizer artifacts/source/artifacts/base_language/tokenizer.json \
+            --output artifacts/source/artifacts/base_language/fineweb-edu/base-language.samples.md \
+            --max-new-tokens 120 \
+            --temperature 0.8 \
+            --top-k 40 \
+            --seed 2026
+
+      - name: Create finalization report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/source/artifacts/base_language/fineweb-edu")
+          run = json.loads((root / "base-language.run.json").read_text(encoding="utf-8"))
+          bundle = json.loads((root / "inference-bundle-report.json").read_text(encoding="utf-8"))
+          report = {
+              "project": "Hu Tao offline AI",
+              "training_workflow_run_id": ${{ github.event.workflow_run.id }},
+              "training_completed": run["status"] == "completed",
+              "training_steps": run["steps_requested"],
+              "tokens_seen": run["tokens_seen_this_run"],
+              "parameters": run["estimated_parameters"],
+              "inference_bundle_bytes": bundle["total_bytes"],
+              "inference_bundle_limit_bytes": bundle["max_bytes"],
+              "inference_bundle_within_1gb": bundle["within_limit"],
+              "qualitative_samples_generated": (root / "base-language.samples.md").is_file(),
+              "private_user_chat_history_used": False,
+              "Hu_Tao_identity_data_used": False,
+              "character_identity_training": "not performed; generic base-language model only",
+          }
+          (root / "finalization-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload finalized offline model and diagnostics (no public Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: joseph-fineweb-edu-trained-model-${{ github.event.workflow_run.id }}
+          path: |
+            artifacts/source/artifacts/base_language/FINEWEB_EDU.md
+            artifacts/source/artifacts/base_language/fineweb-edu/manifest.json
+            artifacts/source/artifacts/base_language/fineweb-edu/base-language.metrics.jsonl
+            artifacts/source/artifacts/base_language/fineweb-edu/base-language.run.json
+            artifacts/source/artifacts/base_language/fineweb-edu/base-language.samples.md
+            artifacts/source/artifacts/base_language/fineweb-edu/inference/
+            artifacts/source/artifacts/base_language/fineweb-edu/inference-bundle-report.json
+            artifacts/source/artifacts/base_language/fineweb-edu/finalization-report.json
+            artifacts/source/artifacts/base_language/tokenizer.json
+            artifacts/source/artifacts/base_language/tokenizer.json.manifest.json
+            artifacts/source/data/corpus/mixed/mixture-report.json
+            artifacts/source/data/corpus/mixed/dialogue-source-report.json
+            artifacts/source/data/corpus/mixed/dialogue-attribution.md
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
