@@ -364,6 +364,13 @@ def main() -> None:
     else:
         scheduler_state_status = "fresh_schedule"
 
+    if scheduler_state_status == "restored":
+        saved_schedule_total = parent_payload.get("schedule_total_steps")
+        if args.schedule_total_steps is None and isinstance(saved_schedule_total, int):
+            schedule_total_steps = max(schedule_total_steps, saved_schedule_total)
+        if args.schedule_total_steps is None:
+            schedule_total_steps = max(schedule_total_steps, scheduler.last_epoch + args.steps)
+
     schedule_step_start = scheduler.last_epoch if scheduler_state_status == "restored" else 0
     if schedule_step_start + args.steps > schedule_total_steps:
         parser.error(
@@ -543,6 +550,7 @@ def main() -> None:
                     optimizer=optimizer,
                     scheduler=scheduler,
                     scaler=scaler if scaler_enabled else None,
+                    schedule_total_steps=schedule_total_steps,
                 )
                 metadata.update({
                     "status": "running",
@@ -568,6 +576,7 @@ def main() -> None:
         output_path, model, config, global_step,
         optimizer=optimizer, scheduler=scheduler,
         scaler=scaler if scaler_enabled else None,
+        schedule_total_steps=schedule_total_steps,
     )
     metadata.update({
         "status": "completed",
