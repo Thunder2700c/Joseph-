@@ -24,8 +24,8 @@ DATASET_CARD = (
     "https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu/"
     "tree/87f09149ef4734204d70ed1d046ddc9ca3f2b8f9"
 )
-EMAIL_PATTERN = re.compile(r"\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", re.IGNORECASE)
-US_SSN_PATTERN = re.compile(r"\\b\\d{3}-\\d{2}-\\d{4}\\b")
+EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+US_SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 LICENSE_NOTE = (
     "The dataset card declares ODC-By 1.0. FineWeb-Edu is filtered from Common Crawl; "
     "the dataset card also states that Common Crawl terms of use apply. This project "
