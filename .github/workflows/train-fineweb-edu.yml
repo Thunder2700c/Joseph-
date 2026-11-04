@@ -400,7 +400,7 @@ jobs:
           assert run["validation_dialogue_sample_count"] > 0
           assert run["train_loss_target_count"] > 0
           assert run["validation_loss_target_count"] > 0
-          assert run["initialization"] == "random_initialization"
+          assert run["initialization"] == "random"
 
           config = ModelConfig.from_dict(run["model_config"])
           assert config.d_model == 384 and config.n_layers == 6 and config.n_heads == 6
