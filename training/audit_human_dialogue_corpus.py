@@ -182,10 +182,19 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
         validation_percent=5,
     )
 
-    daily = load_dataset(DAILYDIALOG_SOURCE, "full", revision=DAILYDIALOG_REVISION)
+    daily = load_dataset(
+        DAILYDIALOG_SOURCE,
+        "full",
+        revision=DAILYDIALOG_REVISION,
+        trust_remote_code=True,
+    )
     daily_groups, daily_rows = iter_daily_splits(daily)
 
-    empathetic = load_dataset(EMPATHETIC_SOURCE, revision=EMPATHETIC_REVISION)
+    empathetic = load_dataset(
+        EMPATHETIC_SOURCE,
+        revision=EMPATHETIC_REVISION,
+        trust_remote_code=True,
+    )
     empathetic_groups, empathetic_rows = iter_empathetic_splits(empathetic)
 
     raw = {
