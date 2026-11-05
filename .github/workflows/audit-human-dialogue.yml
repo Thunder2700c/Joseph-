@@ -64,15 +64,29 @@ jobs:
           assert report["sources"]["oasst1"]["train_validation_tree_overlap"] == 0
           assert report["sources"]["daily_dialog"]["license"] == "CC-BY-NC-SA-4.0"
           assert report["sources"]["empathetic_dialogues"]["license"] == "CC-BY-NC-4.0"
+          assert report["sources"]["taskmaster"]["license"] == "CC-BY-4.0"
+          assert all(value == 0 for value in report["sources"]["taskmaster"]["conversation_id_overlap"].values())
+          assert report["training_policy"].startswith("The combined train.txt is for inspection only")
+          for source, split_files in report["source_files"].items():
+              for split in ("train", "validation", "test"):
+                  entry = split_files[split]
+                  path = root / "sources" / source / f"{split}.txt"
+                  assert path.is_file()
+                  assert path.stat().st_size == entry["bytes"]
+                  assert entry["samples"] == report["final_source_samples_by_split"][source][split]
           print(json.dumps({
               "samples_by_split": report["samples_by_split"],
-              "duplicates_removed": report["exact_duplicates_removed_by_split"],
-              "source_splits": {
-                  name: info.get("prepared_samples_by_split")
-                  for name, info in report["sources"].items()
-              },
+              "final_source_samples_by_split": report["final_source_samples_by_split"],
+              "duplicates_removed": report["exact_duplicates_removed_by_source_and_split"],
               "licenses": {
                   name: info["license"] for name, info in report["sources"].items()
+              },
+              "taskmaster_quality": {
+                  "source_rows": report["sources"]["taskmaster"]["source_rows_total"],
+                  "unique_conversations": report["sources"]["taskmaster"]["unique_conversations"],
+                  "accepted_rows": report["sources"]["taskmaster"]["prepared_rows"],
+                  "rejected_rows": report["sources"]["taskmaster"]["rejected_rows"],
+                  "conversation_id_overlap": report["sources"]["taskmaster"]["conversation_id_overlap"],
               },
               "private_data": report["private_user_conversations_included"],
               "model_generated_data": report["model_generated_training_data_included"],
