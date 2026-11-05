@@ -1,0 +1,89 @@
+name: Audit human dialogue corpus v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "training/audit_human_dialogue_corpus.py"
+      - "training/prepare_oasst1_corpus.py"
+      - ".github/workflows/audit-human-dialogue.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hutao-human-dialogue-corpus-audit
+  cancel-in-progress: false
+
+jobs:
+  prepare-and-audit:
+    name: Acquire, filter and audit human dialogue sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pinned dataset tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "datasets==3.3.2"
+
+      - name: Build human-authored dialogue corpus
+        run: |
+          python -m training.audit_human_dialogue_corpus \
+            --output-dir artifacts/human-dialogue-v2
+
+      - name: Verify splits, provenance and exclusions
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/human-dialogue-v2")
+          report = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+          assert report["private_user_conversations_included"] is False
+          assert report["model_generated_training_data_included"] is False
+          assert report["hu_tao_identity_or_life_stage_material_included"] is False
+          assert report["noncommercial_sources_present"] is True
+          assert all(report["samples_by_split"][name] > 0 for name in ("train", "validation", "test"))
+          for name in ("train", "validation", "test"):
+              path = root / f"{name}.txt"
+              assert path.is_file() and path.stat().st_size > 0
+              assert report["files"][f"{name}.txt"]["bytes"] == path.stat().st_size
+          assert report["sources"]["oasst1"]["synthetic_records_allowed"] is False
+          assert report["sources"]["oasst1"]["train_validation_tree_overlap"] == 0
+          assert report["sources"]["daily_dialog"]["license"] == "CC-BY-NC-SA-4.0"
+          assert report["sources"]["empathetic_dialogues"]["license"] == "CC-BY-NC-4.0"
+          print(json.dumps({
+              "samples_by_split": report["samples_by_split"],
+              "duplicates_removed": report["exact_duplicates_removed_by_split"],
+              "source_splits": {
+                  name: info.get("prepared_samples_by_split")
+                  for name, info in report["sources"].items()
+              },
+              "licenses": {
+                  name: info["license"] for name, info in report["sources"].items()
+              },
+              "private_data": report["private_user_conversations_included"],
+              "model_generated_data": report["model_generated_training_data_included"],
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload temporary corpus audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hutao-human-dialogue-corpus-\${{ github.run_id }}
+          path: artifacts/human-dialogue-v2/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 14
