@@ -112,14 +112,14 @@ class MemoryTests(unittest.TestCase):
 
 
 class ConfigTests(unittest.TestCase):
-    def test_default_weight_budget(self):
-        config = ModelConfig()
+    def test_training_config_can_exceed_phone_bundle_size(self):
+        config = ModelConfig(
+            vocab_size=32_000, d_model=2_048, n_layers=24,
+            n_heads=16, block_size=4_096, dropout=0.0,
+        )
         config.validate()
-        self.assertLess(config.estimated_weight_bytes(), AI_PACKAGE_MAX_BYTES)
+        self.assertGreater(config.estimated_weight_bytes(), AI_PACKAGE_MAX_BYTES)
         self.assertGreater(config.estimated_parameter_count(), 1_000_000)
-        self.assertEqual(config.max_weight_bytes, AI_PACKAGE_MAX_BYTES)
-        with self.assertRaises(ValueError):
-            ModelConfig(max_weight_bytes=AI_PACKAGE_MAX_BYTES + 1).validate()
 
 
 if __name__ == "__main__":
