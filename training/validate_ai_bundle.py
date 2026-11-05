@@ -64,7 +64,7 @@ def validate_ai_bundle(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Check that the complete inference AI payload is at most 1,000,000,000 bytes."
+        description="Check that the complete inference AI payload is at most 1,500,000,000 bytes."
     )
     parser.add_argument("--root", required=True, help="directory containing every distributable AI asset")
     args = parser.parse_args()
