@@ -82,7 +82,7 @@ jobs:
       - name: Upload temporary corpus audit artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hutao-human-dialogue-corpus-\${{ github.run_id }}
+          name: hutao-human-dialogue-corpus-v2
           path: artifacts/human-dialogue-v2/
           if-no-files-found: error
           compression-level: 6
