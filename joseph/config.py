@@ -3,7 +3,7 @@
 from dataclasses import asdict, dataclass
 
 # Hard ceiling for the complete distributable AI payload, in decimal bytes.
-AI_PACKAGE_MAX_BYTES = 1_000_000_000
+AI_PACKAGE_MAX_BYTES = 1_500_000_000
 
 
 @dataclass
