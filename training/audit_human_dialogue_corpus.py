@@ -20,6 +20,8 @@ DAILYDIALOG_SOURCE = "roskoN/dailydialog"
 DAILYDIALOG_REVISION = "1354edc25b185125201352b283cf9480c2fa91de"
 EMPATHETIC_SOURCE = "facebook/empathetic_dialogues"
 EMPATHETIC_REVISION = "d8b8066"
+TASKMASTER_SOURCE = "GEM/Taskmaster"
+TASKMASTER_REVISION = "435a8aa229f3a60520d399c878862885b7509e91"
 
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 WHITESPACE_PATTERN = re.compile(r"\s+")
@@ -44,6 +46,13 @@ LICENSES = {
         "license": "CC-BY-NC-4.0",
         "url": "https://huggingface.co/datasets/facebook/empathetic_dialogues",
         "notes": "Non-commercial. Preserve attribution.",
+    },
+    "taskmaster": {
+        "source": TASKMASTER_SOURCE,
+        "revision": TASKMASTER_REVISION,
+        "license": "CC-BY-4.0",
+        "url": "https://huggingface.co/datasets/GEM/Taskmaster",
+        "notes": "Task-oriented dialogue; retain Creative Commons attribution.",
     },
 }
 
@@ -109,6 +118,92 @@ def empathetic_sample(row: dict[str, Any]) -> str | None:
 
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def taskmaster_context_turns(context: Any) -> list[tuple[str, str]]:
+    """Extract natural USER/ASSISTANT turns and discard API/slot markup."""
+    if not isinstance(context, str):
+        return []
+    markers = list(TASKMASTER_TAG_PATTERN.finditer(context))
+    turns: list[tuple[str, str]] = []
+    for index, marker in enumerate(markers):
+        tag = marker.group()
+        if tag not in {"<U>", "<A>"}:
+            continue
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(context)
+        text = acceptable_text(context[marker.end():end], minimum=2, maximum=6000)
+        if text is None or MOJIBAKE_PATTERN.search(text):
+            continue
+        role = "user" if tag == "<U>" else "assistant"
+        if turns and turns[-1][0] == role:
+            return []
+        turns.append((role, text))
+    return turns
+
+
+def taskmaster_row_sample(row: dict[str, Any]) -> tuple[str | None, str | None]:
+    """Create a multi-turn causal example from one official Taskmaster row."""
+    conversation_id = row.get("conversation_id")
+    target = acceptable_text(row.get("target"), minimum=2, maximum=6000)
+    if not isinstance(conversation_id, str) or not conversation_id:
+        return None, None
+    if target is None or MOJIBAKE_PATTERN.search(target):
+        return conversation_id, None
+    turns = taskmaster_context_turns(row.get("context"))
+    if not turns or turns[0][0] != "user" or turns[-1][0] != "user":
+        return conversation_id, None
+    turns = turns[-8:]
+    if turns and turns[0][0] == "assistant":
+        turns = turns[1:]
+    if not turns or turns[0][0] != "user" or turns[-1][0] != "user":
+        return conversation_id, None
+    turns.append(("assistant", target))
+    sample = serialize_turns(turns)
+    return conversation_id, sample if len(sample) >= 32 else None
+
+
+def iter_taskmaster_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, Any]]:
+    """Prepare official Taskmaster splits with conversation-level isolation."""
+    split_aliases = {
+        "train": ("train",),
+        "validation": ("validation", "dev", "valid"),
+        "test": ("test",),
+    }
+    output: dict[str, list[str]] = {"train": [], "validation": [], "test": []}
+    counts: dict[str, Any] = {}
+    conversation_ids: dict[str, set[str]] = {name: set() for name in output}
+    for split, aliases in split_aliases.items():
+        source_split = next((name for name in aliases if name in dataset), None)
+        if source_split is None:
+            raise RuntimeError(f"Taskmaster is missing the official {split} split")
+        rows = dataset[source_split]
+        for row in rows:
+            conversation_id, sample = taskmaster_row_sample(dict(row))
+            if conversation_id:
+                conversation_ids[split].add(conversation_id)
+            if sample is not None:
+                output[split].append(sample)
+        counts[split] = {
+            "source_split": source_split,
+            "source_rows": len(rows),
+            "prepared_samples": len(output[split]),
+            "unique_conversation_ids": len(conversation_ids[split]),
+        }
+    overlaps = {}
+    names = ("train", "validation", "test")
+    for left_index, left in enumerate(names):
+        for right in names[left_index + 1:]:
+            overlap = conversation_ids[left] & conversation_ids[right]
+            overlaps[f"{left}__{right}"] = len(overlap)
+            if overlap:
+                raise RuntimeError(
+                    f"Taskmaster conversation IDs cross {left}/{right} splits: {len(overlap)}"
+                )
+    if not all(output.values()):
+        raise RuntimeError(
+            f"Taskmaster has empty prepared split(s): { {k: len(v) for k, v in output.items()} }"
+        )
+    return output, {"splits": counts, "conversation_id_overlap": overlaps}
 
 
 def iter_daily_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, int]]:
@@ -197,10 +292,23 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
     )
     empathetic_groups, empathetic_rows = iter_empathetic_splits(empathetic)
 
+    taskmaster = load_dataset(
+        TASKMASTER_SOURCE,
+        revision=TASKMASTER_REVISION,
+        trust_remote_code=True,
+    )
+    taskmaster_groups, taskmaster_report = iter_taskmaster_splits(taskmaster)
+
     raw = {
-        "train": oasst_train + daily_groups["train"] + empathetic_groups["train"],
-        "validation": oasst_validation + daily_groups["validation"] + empathetic_groups["validation"],
-        "test": daily_groups["test"] + empathetic_groups["test"],
+        "train": (
+            oasst_train + daily_groups["train"] + empathetic_groups["train"]
+            + taskmaster_groups["train"]
+        ),
+        "validation": (
+            oasst_validation + daily_groups["validation"] + empathetic_groups["validation"]
+            + taskmaster_groups["validation"]
+        ),
+        "test": daily_groups["test"] + empathetic_groups["test"] + taskmaster_groups["test"],
     }
     corpus, duplicates = deduplicate_splits(raw)
     if not all(corpus.values()):
@@ -243,6 +351,10 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
                 "source_rows_by_split": empathetic_rows,
                 "prepared_samples_by_split": {k: len(v) for k, v in empathetic_groups.items()},
             },
+            "taskmaster": {
+                **LICENSES["taskmaster"],
+                **taskmaster_report,
+            },
         },
         "samples_by_split": {k: len(v) for k, v in corpus.items()},
         "exact_duplicates_removed_by_split": duplicates,
@@ -258,6 +370,7 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
         "model_generated_training_data_included": False,
         "hu_tao_identity_or_life_stage_material_included": False,
         "noncommercial_sources_present": True,
+        "commercial_use_note": "The combined mixture still includes non-commercial datasets; Taskmaster CC-BY-4.0 does not remove those restrictions.",
         "distribution_note": (
             "DailyDialog and EmpatheticDialogues carry non-commercial restrictions; "
             "DailyDialog also carries ShareAlike terms. Preserve attributions and review "
@@ -267,6 +380,9 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
             "personachat": "held pending a clear dataset-specific licence audit",
             "multi_session_chat": "held pending a clear dataset-specific licence audit",
             "topical_chat": "held for separate review of its CDLA-Sharing-1.0 data agreement",
+            "light": "held pending a direct audit of the dataset-specific data licence",
+            "persona_chat": "held pending a clear dataset-specific licence audit",
+            "multi_session_chat": "held pending a clear dataset-specific licence audit",
         },
     }
     (output / "manifest.json").write_text(
