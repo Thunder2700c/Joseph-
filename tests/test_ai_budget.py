@@ -33,7 +33,7 @@ class AIBudgetTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "above the hard limit"):
                 validate_ai_bundle(root, max_bytes=100)
 
-    def test_bundle_limit_cannot_be_configured_above_one_gigabyte(self):
+    def test_bundle_limit_cannot_be_configured_above_one_point_five_gigabytes(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ValueError, "project hard cap"):
                 validate_ai_bundle(directory, max_bytes=AI_PACKAGE_MAX_BYTES + 1)
