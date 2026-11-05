@@ -14,7 +14,6 @@ class ModelConfig:
     n_heads: int = 8
     block_size: int = 256
     dropout: float = 0.1
-    max_weight_bytes: int = AI_PACKAGE_MAX_BYTES
 
     def validate(self) -> None:
         if self.vocab_size < 260:
@@ -27,15 +26,8 @@ class ModelConfig:
             raise ValueError("block_size must be positive")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("dropout must be in [0, 1)")
-        if self.max_weight_bytes <= 0:
-            raise ValueError("max_weight_bytes must be positive")
-        if self.max_weight_bytes > AI_PACKAGE_MAX_BYTES:
-            raise ValueError(
-                "checkpoint ceiling cannot exceed the complete AI package ceiling "
-                f"of {AI_PACKAGE_MAX_BYTES} bytes"
-            )
-        if self.estimated_weight_bytes() > self.max_weight_bytes:
-            raise ValueError("estimated FP32 model weights exceed max_weight_bytes")
+        # Training checkpoints and optimizer states may exceed the phone bundle cap.
+        # Only training/validate_ai_bundle.py applies the 1.5 GB limit to exported assets.
 
     def estimated_parameter_count(self) -> int:
         d = self.d_model
