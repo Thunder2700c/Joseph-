@@ -1,4 +1,4 @@
-"""Safe-ish checkpoint writing with a hard serialized-file size ceiling."""
+"""Atomic training checkpoint writing; checkpoints are not phone inference bundles."""
 
 from __future__ import annotations
 
@@ -48,11 +48,9 @@ def save_checkpoint(
     try:
         torch.save(payload, temporary)
         size = temporary.stat().st_size
-        if size > config.max_weight_bytes:
-            raise ValueError(
-                f"checkpoint is {size} bytes, above the "
-                f"{config.max_weight_bytes}-byte limit"
-            )
+        # Training checkpoints may contain FP32 weights, gradients/optimizer
+        # state and scheduler metadata; the phone bundle cap applies only after
+        # export and quantization, via training.validate_ai_bundle.
         temporary.replace(target)
         return size
     finally:
