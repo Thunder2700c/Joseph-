@@ -25,6 +25,8 @@ TASKMASTER_REVISION = "435a8aa229f3a60520d399c878862885b7509e91"
 
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 WHITESPACE_PATTERN = re.compile(r"\s+")
+TASKMASTER_TAG_PATTERN = re.compile(r"<[A-Z]+>")
+MOJIBAKE_PATTERN = re.compile(r"(?:Ã.|Â.|â€|ï»¿|�)")
 
 LICENSES = {
     "oasst1": {
