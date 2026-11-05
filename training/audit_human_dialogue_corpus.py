@@ -445,7 +445,7 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
             }
             for split in corpus
         },
-        "tokenizer_policy": "fit on train.txt only; never fit on validation.txt or test.txt",
+        "tokenizer_policy": "fit only on the weighted training corpus assembled from sources/<source>/train.txt; never fit on validation/test files",
         "private_user_conversations_included": False,
         "model_generated_training_data_included": False,
         "hu_tao_identity_or_life_stage_material_included": False,
@@ -457,12 +457,10 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
             "obligations before distributing a model trained on this mixture."
         ),
         "excluded_candidates": {
-            "personachat": "held pending a clear dataset-specific licence audit",
+            "persona_chat": "held pending a clear dataset-specific licence audit",
             "multi_session_chat": "held pending a clear dataset-specific licence audit",
             "topical_chat": "held for separate review of its CDLA-Sharing-1.0 data agreement",
             "light": "held pending a direct audit of the dataset-specific data licence",
-            "persona_chat": "held pending a clear dataset-specific licence audit",
-            "multi_session_chat": "held pending a clear dataset-specific licence audit",
         },
     }
     (output / "manifest.json").write_text(
