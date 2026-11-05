@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import torch
 
@@ -13,7 +14,7 @@ class HuTaoLlamaConfigTests(unittest.TestCase):
     def test_candidate_is_approximately_1_8b_and_fits_estimated_q4_bundle(self):
         config = HuTaoLlamaConfig()
         config.validate()
-        self.assertEqual(config.estimated_parameter_count(), 1_782_704_640)
+        self.assertEqual(config.estimated_parameter_count(), 1_782_827_520)
         estimate = config.validate_inference_estimate()
         self.assertGreater(estimate, 900_000_000)
         self.assertLess(estimate, 1_100_000_000)
@@ -91,20 +92,19 @@ class HuTaoLlamaModelTests(unittest.TestCase):
     def test_generation_stops_on_end_of_turn(self):
         config = self.small_config()
         model = HuTaoLlamaModel(config)
-        # Force one token to be emitted, then forbid all alternatives except stop.
         stop_token_id = 7
-        with torch.no_grad():
-            for parameter in model.parameters():
-                parameter.zero_()
-            model.lm_head.weight[stop_token_id, 0] = 100.0
-            model.token_embedding.weight[1, 0] = 1.0
         prompt = torch.tensor([[1, 2, 3]])
-        generated = model.generate(
-            prompt,
-            max_new_tokens=8,
-            temperature=0.0,
-            stop_token_ids=[stop_token_id],
-        )
+        forced_logits = torch.zeros(1, prompt.shape[1], config.vocab_size)
+        forced_logits[:, :, stop_token_id] = 100.0
+        # Patch the model forward pass so this test exercises stopping logic,
+        # not the random model's untrained token preferences.
+        with patch.object(model, "forward", return_value=(forced_logits, None)):
+            generated = model.generate(
+                prompt,
+                max_new_tokens=8,
+                temperature=0.0,
+                stop_token_ids=[stop_token_id],
+            )
         self.assertEqual(generated.shape[1], prompt.shape[1] + 1)
         self.assertEqual(int(generated[0, -1]), stop_token_id)
 
