@@ -49,44 +49,55 @@ class TaskmasterCorpusTests(unittest.TestCase):
             [],
         )
 
-    def test_official_splits_are_kept_separate_by_conversation(self):
-        row_train = {
-            "conversation_id": "train-1",
-            "context": "<U>Hello there?",
-            "target": "Yes, hello.",
-        }
-        row_validation = {
-            "conversation_id": "valid-1",
-            "context": "<U>Are you there?",
-            "target": "I am here.",
-        }
-        row_test = {
-            "conversation_id": "test-1",
-            "context": "<U>Can you help?",
-            "target": "Certainly.",
-        }
+    def test_taskmaster_is_resplit_by_conversation_without_leakage(self):
+        import hashlib
+
+        chosen = {"train": None, "validation": None, "test": None}
+        candidate = 0
+        while any(value is None for value in chosen.values()):
+            conversation_id = f"dialog-{candidate}"
+            digest = hashlib.sha256(
+                f"hutao-taskmaster-group-split-v1:{conversation_id}".encode("utf-8")
+            ).digest()
+            bucket = int.from_bytes(digest[:4], "big") % 100
+            split = "test" if bucket < 5 else "validation" if bucket < 10 else "train"
+            chosen[split] = chosen[split] or conversation_id
+            candidate += 1
+
+        def row(conversation_id, question, answer):
+            return {
+                "conversation_id": conversation_id,
+                "context": f"<U>{question}",
+                "target": answer,
+            }
+
+        repeated_id = chosen["train"]
         groups, report = iter_taskmaster_splits({
-            "train": [row_train],
-            "dev": [row_validation],
-            "test": [row_test],
+            "train": [
+                row(repeated_id, "How are you?", "I am well."),
+                row(chosen["validation"], "What time is it?", "It is noon."),
+            ],
+            "dev": [
+                row(repeated_id, "Would you like tea?", "Yes, please."),
+            ],
+            "test": [
+                row(chosen["test"], "Can you help me?", "Certainly."),
+            ],
         })
         self.assertEqual({key: len(value) for key, value in groups.items()}, {
-            "train": 1, "validation": 1, "test": 1
+            "train": 2, "validation": 1, "test": 1
         })
-        self.assertEqual(set(report["conversation_id_overlap"].values()), {0})
-
-    def test_cross_split_conversation_reuse_is_rejected(self):
-        row = {
-            "conversation_id": "same-conversation",
-            "context": "<U>Hello?",
-            "target": "Hi.",
-        }
-        with self.assertRaisesRegex(RuntimeError, "cross train/validation splits"):
-            iter_taskmaster_splits({
-                "train": [row],
-                "validation": [row],
-                "test": [{"conversation_id": "test", "context": "<U>Hey?", "target": "Hello."}],
-            })
+        self.assertEqual(report["unique_conversations"], 3)
+        self.assertEqual(report["source_rows_total"], 4)
+        self.assertEqual(report["conversation_id_overlap"], {
+            "train__validation": 0,
+            "train__test": 0,
+            "validation__test": 0,
+        })
+        self.assertEqual(
+            report["split_policy"],
+            "deterministic SHA-256 by conversation_id; 90% train, 5% validation, 5% test",
+        )
 
 
 if __name__ == "__main__":
