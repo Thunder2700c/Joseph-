@@ -1,10 +1,54 @@
 import unittest
 
 from training.audit_human_dialogue_corpus import (
+    empathetic_sample,
+    filter_assistant_boilerplate,
     iter_taskmaster_splits,
+    normalize,
     taskmaster_context_turns,
     taskmaster_row_sample,
 )
+
+
+class DialogueQualityTests(unittest.TestCase):
+    def test_empathetic_comma_placeholders_are_restored(self):
+        self.assertEqual(
+            normalize("Hello_comma_ how are you_comma_"),
+            "Hello, how are you,",
+        )
+
+    def test_empathetic_duplicate_prompt_response_is_rejected(self):
+        row = {
+            "prompt": "That sounds frightening.",
+            "utterance": "That sounds frightening.",
+            "context": "afraid",
+        }
+        self.assertIsNone(empathetic_sample(row))
+
+    def test_empathetic_emotional_reply_is_kept_and_normalized(self):
+        row = {
+            "prompt": "What happened today?",
+            "utterance": "I had a difficult day_comma_ but I'm okay now.",
+            "context": "sad",
+        }
+        sample = empathetic_sample(row)
+        self.assertIn("I had a difficult day, but I'm okay now.", sample)
+        self.assertIn("Conversation situation: sad", sample)
+
+    def test_generic_ai_boilerplate_is_removed_from_assistant_turns(self):
+        groups, counts = filter_assistant_boilerplate({
+            "oasst1": {
+                "train": [
+                    "<|user|>Help me.<|assistant|>As a language model AI, I cannot help.",
+                    "<|user|>Hello.<|assistant|>Hey! What are you doing?",
+                ],
+                "validation": [],
+                "test": [],
+            }
+        })
+        self.assertEqual(len(groups["oasst1"]["train"]), 1)
+        self.assertIn("Hey!", groups["oasst1"]["train"][0])
+        self.assertEqual(counts["oasst1"]["train"], 1)
 
 
 class TaskmasterCorpusTests(unittest.TestCase):
