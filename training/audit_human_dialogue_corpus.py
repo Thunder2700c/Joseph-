@@ -27,8 +27,8 @@ EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNO
 WHITESPACE_PATTERN = re.compile(r"\s+")
 TASKMASTER_TAG_PATTERN = re.compile(r"<[A-Z]+>")
 MOJIBAKE_PATTERN = re.compile(r"(?:Ã.|Â.|â€|ï»¿|�)")
-AI_BOILERPLATE_PATTERN = re.compile(r"(?i)\\bas an? (?:ai|artificial intelligence|language) model\\b|\\bi am an? (?:ai|artificial intelligence)\\b|\\bi do not have access to (?:the )?(?:internet|real.time information)\\b")
-ASSISTANT_SEGMENT_PATTERN = re.compile(r"<\\|assistant\\|>(.*?)(?=<\\|(?:assistant|user|eot)\\|>|$)", re.DOTALL)
+AI_BOILERPLATE_PATTERN = re.compile(r"(?i)\bas an? (?:ai|artificial intelligence|language) model\b|\bi am an? (?:ai|artificial intelligence)\b|\bi do not have access to (?:the )?(?:internet|real.time information)\b")
+ASSISTANT_SEGMENT_PATTERN = re.compile(r"<\|assistant\|>(.*?)(?=<\|(?:assistant|user|eot)\|>|$)", re.DOTALL)
 
 LICENSES = {
     "oasst1": {
