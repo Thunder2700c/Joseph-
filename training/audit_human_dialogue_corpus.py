@@ -122,6 +122,46 @@ def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def iter_daily_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, int]]:
+    output = {"train": [], "validation": [], "test": []}
+    counts: dict[str, int] = {}
+    aliases = {"validation": ("validation", "valid", "dev"), "test": ("test",)}
+    for split in ("train", "validation", "test"):
+        source_split = split
+        if source_split not in dataset and split != "train":
+            source_split = next((name for name in aliases[split] if name in dataset), "")
+        if not source_split:
+            continue
+        rows = dataset[source_split]
+        counts[source_split] = len(rows)
+        for row in rows:
+            output[split].extend(daily_dialog_samples(dict(row)))
+    if not all(output.values()):
+        raise RuntimeError(
+            f"DailyDialog has empty prepared split(s): { {k: len(v) for k, v in output.items()} }"
+        )
+    return output, counts
+
+
+def iter_empathetic_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, int]]:
+    output = {"train": [], "validation": [], "test": []}
+    counts: dict[str, int] = {}
+    for split in output:
+        if split not in dataset:
+            raise RuntimeError(f"EmpatheticDialogues is missing official {split} split")
+        rows = dataset[split]
+        counts[split] = len(rows)
+        for row in rows:
+            sample = empathetic_sample(dict(row))
+            if sample is not None:
+                output[split].append(sample)
+    if not all(output.values()):
+        raise RuntimeError(
+            f"EmpatheticDialogues has empty prepared split(s): { {k: len(v) for k, v in output.items()} }"
+        )
+    return output, counts
+
+
 def taskmaster_context_turns(context: Any) -> list[tuple[str, str]]:
     """Extract natural USER/ASSISTANT turns and discard API/slot markup."""
     if not isinstance(context, str):
