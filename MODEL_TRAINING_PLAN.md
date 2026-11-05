@@ -1,10 +1,12 @@
 # Hu Tao character-model training plan
 
-This plan defines how to turn the current from-scratch Transformer prototype into a usable, purpose-trained Hu Tao model. It is subordinate to `CONTINUATION_CONTEXT.md`.
+> **Historical v1 plan:** the current active direction is [TRAINING_V2_REALISM_PLAN.md](TRAINING_V2_REALISM_PLAN.md). This document records the earlier prototype and pilot. Where the two differ, v2 takes precedence.
+
+This plan defines the earlier from-scratch Transformer prototype and its first training experiments. It is subordinate to `CONTINUATION_CONTEXT.md`.
 
 ## The target
 
-**Hard size ceiling:** the complete distributable AI inference payload must be at most **1,000,000,000 bytes** including model weights, tokenizer, vocabulary, configuration, generation metadata and any auxiliary AI models/assets. There is no minimum size and no requirement to fill the cap. Smaller is acceptable; select the smallest model that passes evaluation. Run the bundle validator before release.
+**Hard size ceiling:** the complete distributable AI inference payload must be at most **1,500,000,000 bytes** including model weights, tokenizer, vocabulary, configuration, generation metadata and any auxiliary AI models/assets. There is no minimum size and no requirement to fill the cap. Smaller is acceptable; select the smallest model that passes evaluation. Run the bundle validator before release.
 
 **From-scratch only:** initialize all neural weights randomly and train the tokenizer from approved text. Do not download, wrap, rebuild, distil from, or fine-tune third-party pretrained LLMs or use third-party model weights, adapters, embedding models or rerankers. The later Hu Tao character-specialization stage continues training only the base model created by this project. Licensed text datasets are allowed; pretrained neural weights are not.
 
@@ -168,4 +170,4 @@ The first selected source is the Cosmopedia v2 configuration from Hugging Face S
 
 The user works with Android-first constraints and limited local compute. Do not assume the whole from-scratch training run can run on the phone, Chromebook or free CI. Estimate corpus size, model size, optimiser memory, sequence length, batch size, number of tokens and total compute before launching a long job. Hosted training compute may be considered only with explicit attention to limits and reproducibility; the final app must not depend on cloud inference.
 
-The complete distributable AI payload has an absolute maximum of 1,000,000,000 bytes. Count the checkpoint, tokenizer/vocabulary, configuration, metadata and every auxiliary AI asset together. No additional embedding model, reranker, adapter or second model may be included if the total would exceed the cap. The cap is not a size target; any smaller package is acceptable. The training corpus is not part of the inference bundle and must not be shipped with it. Model size under the cap does not guarantee usable quality; data, training-token count and evaluation still matter.
+The complete distributable AI payload has an absolute maximum of 1,500,000,000 bytes. Count the checkpoint, tokenizer/vocabulary, configuration, metadata and every auxiliary AI asset together. No additional embedding model, reranker, adapter or second model may be included if the total would exceed the cap. The cap is not a size target; any smaller package is acceptable. The training corpus is not part of the inference bundle and must not be shipped with it. Model size under the cap does not guarantee usable quality; data, training-token count and evaluation still matter.
