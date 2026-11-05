@@ -2,14 +2,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from joseph.config import AI_PACKAGE_MAX_BYTES, ModelConfig
+from joseph.config import AI_PACKAGE_MAX_BYTES
 from training.validate_ai_bundle import validate_ai_bundle
 
 
 class AIBudgetTests(unittest.TestCase):
-    def test_checkpoint_config_cannot_raise_project_hard_limit(self):
-        with self.assertRaises(ValueError):
-            ModelConfig(max_weight_bytes=AI_PACKAGE_MAX_BYTES + 1).validate()
+    def test_export_limit_cannot_be_raised_above_project_hard_cap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "project hard cap"):
+                validate_ai_bundle(directory, max_bytes=AI_PACKAGE_MAX_BYTES + 1)
 
     def test_bundle_counts_all_files_recursively(self):
         with tempfile.TemporaryDirectory() as directory:
