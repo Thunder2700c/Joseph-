@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from joseph.config import ModelConfig
+from joseph.config import AI_PACKAGE_MAX_BYTES, ModelConfig
 from joseph.knowledge import EntityRecord, FactRecord, KnowledgeStore, SourceRecord
 from joseph.memory import MemoryStore
 from joseph.tokenizer import ByteBPETokenizer, SPECIAL_TOKENS
@@ -115,11 +115,11 @@ class ConfigTests(unittest.TestCase):
     def test_default_weight_budget(self):
         config = ModelConfig()
         config.validate()
-        self.assertLess(config.estimated_weight_bytes(), 1_000_000_000)
+        self.assertLess(config.estimated_weight_bytes(), AI_PACKAGE_MAX_BYTES)
         self.assertGreater(config.estimated_parameter_count(), 1_000_000)
-        self.assertEqual(config.max_weight_bytes, 1_000_000_000)
+        self.assertEqual(config.max_weight_bytes, AI_PACKAGE_MAX_BYTES)
         with self.assertRaises(ValueError):
-            ModelConfig(max_weight_bytes=1_000_000_001).validate()
+            ModelConfig(max_weight_bytes=AI_PACKAGE_MAX_BYTES + 1).validate()
 
 
 if __name__ == "__main__":
