@@ -165,83 +165,78 @@ def taskmaster_row_sample(row: dict[str, Any]) -> tuple[str | None, str | None]:
 
 
 def iter_taskmaster_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, Any]]:
-    """Prepare official Taskmaster splits with conversation-level isolation."""
+    """Re-split Taskmaster by whole conversation IDs to prevent source leakage."""
     split_aliases = {
         "train": ("train",),
         "validation": ("validation", "dev", "valid"),
         "test": ("test",),
     }
-    output: dict[str, list[str]] = {"train": [], "validation": [], "test": []}
-    counts: dict[str, Any] = {}
-    conversation_ids: dict[str, set[str]] = {name: set() for name in output}
-    for split, aliases in split_aliases.items():
+    raw_counts: dict[str, int] = {}
+    conversations: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for canonical, aliases in split_aliases.items():
         source_split = next((name for name in aliases if name in dataset), None)
         if source_split is None:
-            raise RuntimeError(f"Taskmaster is missing the official {split} split")
+            raise RuntimeError(f"Taskmaster is missing upstream {canonical} split")
         rows = dataset[source_split]
+        raw_counts[source_split] = len(rows)
         for row in rows:
-            conversation_id, sample = taskmaster_row_sample(dict(row))
-            if conversation_id:
-                conversation_ids[split].add(conversation_id)
-            if sample is not None:
-                output[split].append(sample)
-        counts[split] = {
-            "source_split": source_split,
-            "source_rows": len(rows),
-            "prepared_samples": len(output[split]),
-            "unique_conversation_ids": len(conversation_ids[split]),
-        }
+            item = dict(row)
+            conversation_id = item.get("conversation_id")
+            if isinstance(conversation_id, str) and conversation_id:
+                conversations[conversation_id].append(item)
+
+    output: dict[str, list[str]] = {"train": [], "validation": [], "test": []}
+    assigned_ids: dict[str, set[str]] = {name: set() for name in output}
+    prepared_rows = 0
+    rejected_rows = 0
+    for conversation_id, rows in conversations.items():
+        digest = hashlib.sha256(
+            f"hutao-taskmaster-group-split-v1:{conversation_id}".encode("utf-8")
+        ).digest()
+        bucket = int.from_bytes(digest[:4], "big") % 100
+        split = "test" if bucket < 5 else "validation" if bucket < 10 else "train"
+        assigned_ids[split].add(conversation_id)
+        for row in rows:
+            row_id, sample = taskmaster_row_sample(row)
+            if row_id != conversation_id:
+                raise AssertionError("Taskmaster row conversation ID changed during parsing")
+            if sample is None:
+                rejected_rows += 1
+                continue
+            output[split].append(sample)
+            prepared_rows += 1
+
     overlaps = {}
     names = ("train", "validation", "test")
     for left_index, left in enumerate(names):
         for right in names[left_index + 1:]:
-            overlap = conversation_ids[left] & conversation_ids[right]
+            overlap = assigned_ids[left] & assigned_ids[right]
             overlaps[f"{left}__{right}"] = len(overlap)
             if overlap:
-                raise RuntimeError(
-                    f"Taskmaster conversation IDs cross {left}/{right} splits: {len(overlap)}"
+                raise AssertionError(
+                    f"Taskmaster conversation IDs cross {left}/{right} after grouped split"
                 )
     if not all(output.values()):
         raise RuntimeError(
             f"Taskmaster has empty prepared split(s): { {k: len(v) for k, v in output.items()} }"
         )
-    return output, {"splits": counts, "conversation_id_overlap": overlaps}
-
-
-def iter_daily_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, int]]:
-    output = {"train": [], "validation": [], "test": []}
-    counts: dict[str, int] = {}
-    aliases = {"validation": ("validation", "valid", "dev"), "test": ("test",)}
-    for split in ("train", "validation", "test"):
-        source_split = split
-        if source_split not in dataset and split != "train":
-            source_split = next((name for name in aliases[split] if name in dataset), "")
-        if not source_split:
-            continue
-        rows = dataset[source_split]
-        counts[source_split] = len(rows)
-        for row in rows:
-            output[split].extend(daily_dialog_samples(dict(row)))
-    if not all(output.values()):
-        raise RuntimeError(f"DailyDialog has empty prepared split(s): { {k: len(v) for k, v in output.items()} }")
-    return output, counts
-
-
-def iter_empathetic_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str, int]]:
-    output = {"train": [], "validation": [], "test": []}
-    counts: dict[str, int] = {}
-    for split in output:
-        if split not in dataset:
-            raise RuntimeError(f"EmpatheticDialogues is missing official {split} split")
-        rows = dataset[split]
-        counts[split] = len(rows)
-        for row in rows:
-            sample = empathetic_sample(dict(row))
-            if sample is not None:
-                output[split].append(sample)
-    if not all(output.values()):
-        raise RuntimeError(f"EmpatheticDialogues has empty prepared split(s): { {k: len(v) for k, v in output.items()} }")
-    return output, counts
+    split_counts = {
+        split: {
+            "prepared_samples": len(output[split]),
+            "unique_conversation_ids": len(assigned_ids[split]),
+        }
+        for split in names
+    }
+    return output, {
+        "upstream_rows_by_split": raw_counts,
+        "source_rows_total": sum(raw_counts.values()),
+        "unique_conversations": len(conversations),
+        "prepared_rows": prepared_rows,
+        "rejected_rows": rejected_rows,
+        "split_policy": "deterministic SHA-256 by conversation_id; 90% train, 5% validation, 5% test",
+        "prepared_splits": split_counts,
+        "conversation_id_overlap": overlaps,
+    }
 
 
 def deduplicate_splits(groups: dict[str, list[str]]) -> tuple[dict[str, list[str]], dict[str, int]]:
