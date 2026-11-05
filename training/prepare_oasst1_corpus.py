@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import random
 import re
 from collections import defaultdict
@@ -280,19 +279,48 @@ def mix_corpora(
     if not base_train or not base_validation or not dialogue_train or not dialogue_validation:
         raise ValueError("all four train/validation source groups must be non-empty")
 
-    def token_total(samples: list[str]) -> int:
-        return sum(len(tokenizer.encode(sample)) + 2 for sample in samples)
+    base_lengths = [len(tokenizer.encode(sample)) + 2 for sample in base_train]
+    dialogue_lengths = [len(tokenizer.encode(sample)) + 2 for sample in dialogue_train]
+    base_tokens = sum(base_lengths)
+    dialogue_source_tokens = sum(dialogue_lengths)
+    if base_tokens < 1 or dialogue_source_tokens < 1:
+        raise ValueError("base and dialogue corpora must contain tokens")
 
-    base_tokens = token_total(base_train)
-    dialogue_tokens = token_total(dialogue_train)
-    repeats = max(
+    # Choose dialogue examples against an explicit token budget. Whole-corpus
+    # repetition alone can overshoot badly when one dialogue pass is already
+    # larger than the requested share (the failure this corrects).
+    target_dialogue_tokens = max(
         1,
-        math.ceil(
-            dialogue_fraction * base_tokens
-            / ((1.0 - dialogue_fraction) * dialogue_tokens)
-        ),
+        round(dialogue_fraction * base_tokens / (1.0 - dialogue_fraction)),
     )
-    combined_train = base_train + dialogue_train * repeats
+    full_repetitions, remaining_budget = divmod(
+        target_dialogue_tokens, dialogue_source_tokens
+    )
+    selected_dialogue = dialogue_train * full_repetitions
+    selected_dialogue_tokens = full_repetitions * dialogue_source_tokens
+
+    # Deterministic randomized first-fit packing fills the final partial pass.
+    # The sample-level granularity leaves at most a small token-budget remainder.
+    order = list(range(len(dialogue_train)))
+    random.Random(seed + 17).shuffle(order)
+    partial_dialogue: list[str] = []
+    partial_tokens = 0
+    for index in order:
+        sample_tokens = dialogue_lengths[index]
+        if sample_tokens <= remaining_budget:
+            partial_dialogue.append(dialogue_train[index])
+            remaining_budget -= sample_tokens
+            partial_tokens += sample_tokens
+
+    selected_dialogue.extend(partial_dialogue)
+    selected_dialogue_tokens += partial_tokens
+    if not selected_dialogue:
+        raise ValueError(
+            "dialogue token budget is smaller than every dialogue sample; "
+            "increase the base corpus or reduce maximum dialogue sample length"
+        )
+
+    combined_train = base_train + selected_dialogue
     random.Random(seed).shuffle(combined_train)
     combined_validation = base_validation + dialogue_validation
     random.Random(seed + 1).shuffle(combined_validation)
@@ -304,20 +332,29 @@ def mix_corpora(
     train_path.write_text("\n".join(combined_train) + "\n", encoding="utf-8")
     validation_path.write_text("\n".join(combined_validation) + "\n", encoding="utf-8")
 
-    final_base_tokens = base_tokens
-    final_dialogue_tokens = dialogue_tokens * repeats
+    achieved_fraction = selected_dialogue_tokens / max(
+        base_tokens + selected_dialogue_tokens, 1
+    )
     report = {
-        "format": "joseph-mixed-corpus-v1",
+        "format": "joseph-mixed-corpus-v2",
         "base_train_samples": len(base_train),
         "base_validation_samples": len(base_validation),
         "dialogue_train_samples_before_upsampling": len(dialogue_train),
+        "dialogue_train_samples_used": len(selected_dialogue),
+        "dialogue_partial_cycle_samples": len(partial_dialogue),
+        "dialogue_train_repetitions": full_repetitions,
         "dialogue_validation_samples": len(dialogue_validation),
-        "dialogue_train_repetitions": repeats,
         "dialogue_token_fraction_target": dialogue_fraction,
-        "dialogue_token_fraction_achieved_estimate": final_dialogue_tokens / max(
-            final_base_tokens + final_dialogue_tokens, 1
+        "dialogue_token_fraction_achieved_estimate": achieved_fraction,
+        "dialogue_token_fraction_absolute_error": abs(achieved_fraction - dialogue_fraction),
+        "base_train_token_count": base_tokens,
+        "dialogue_source_token_count": dialogue_source_tokens,
+        "dialogue_train_token_count_used": selected_dialogue_tokens,
+        "target_dialogue_token_budget": target_dialogue_tokens,
+        "train_token_count_estimate": base_tokens + selected_dialogue_tokens,
+        "dialogue_selection_policy": (
+            "deterministic randomized token-budget packing; sample-level granularity"
         ),
-        "train_token_count_estimate": final_base_tokens + final_dialogue_tokens,
         "validation_sample_count": len(combined_validation),
         "tokenizer_sha256": sha256_file(tokenizer_path),
         "train_sha256": sha256_file(train_path),

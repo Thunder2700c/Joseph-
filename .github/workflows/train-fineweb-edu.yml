@@ -333,13 +333,16 @@ jobs:
           assert source["sources"]["oasst1"]["synthetic_records_allowed"] is False
           assert source["sources"]["dolly_15k"]["license"] == "CC-BY-SA-3.0"
           assert source["train_samples"] > 0 and source["validation_samples"] > 0
-          assert 0.35 <= mixture["dialogue_token_fraction_achieved_estimate"] < 0.50
+          assert 0.34 <= mixture["dialogue_token_fraction_achieved_estimate"] <= 0.36
+          assert mixture["dialogue_train_samples_used"] > 0
+          assert mixture["dialogue_token_fraction_absolute_error"] <= 0.01
           assert mixture["train_token_count_estimate"] > 0
           print(json.dumps({
               "dialogue_train_samples": source["train_samples"],
               "dialogue_validation_samples": source["validation_samples"],
               "oasst_tree_overlap": source["sources"]["oasst1"]["train_validation_tree_overlap"],
               "dialogue_repetitions": mixture["dialogue_train_repetitions"],
+              "dialogue_train_samples_used": mixture["dialogue_train_samples_used"],
               "dialogue_token_fraction": mixture["dialogue_token_fraction_achieved_estimate"],
               "estimated_mixed_train_tokens": mixture["train_token_count_estimate"],
               "private_user_chats_included": source["private_chat_history_included"],

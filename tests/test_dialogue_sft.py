@@ -1,11 +1,15 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from joseph.loss_mask import build_loss_mask
+from joseph.tokenizer import ByteBPETokenizer
 from training.prepare_dialogue_corpus import (
     DOLLY_LICENSE,
     prepare_dolly_samples,
     dolly_row_to_sample,
 )
+from training.prepare_oasst1_corpus import mix_corpora
 
 
 class DialogueSerializationTests(unittest.TestCase):
@@ -61,6 +65,71 @@ class DialogueSerializationTests(unittest.TestCase):
         self.assertEqual(report["duplicates_removed"], 1)
         self.assertEqual(report["rejected_rows"], 1)
         self.assertEqual(len(train) + len(validation), 51)
+
+    def test_mixture_caps_dialogue_share_when_one_full_pass_is_too_large(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base_train = [
+                f"General learning sample {index} explains a useful topic with clear details."
+                for index in range(80)
+            ]
+            base_validation = [
+                f"Held out base validation sample {index} tests general language."
+                for index in range(12)
+            ]
+            dialogue_train = [
+                f"<|user|> Question {index}: explain this subject clearly. "
+                f"<|assistant|> Answer {index}: here is a careful explanation with examples. <|eot|>"
+                for index in range(240)
+            ]
+            dialogue_validation = [
+                f"<|user|> Held out question {index}? "
+                f"<|assistant|> Held out answer {index}. <|eot|>"
+                for index in range(12)
+            ]
+
+            tokenizer = ByteBPETokenizer.train(
+                base_train + base_validation + dialogue_train + dialogue_validation,
+                vocab_size=512,
+            )
+            tokenizer_path = root / "tokenizer.json"
+            tokenizer.save(tokenizer_path)
+            base_train_path = root / "base-train.txt"
+            base_validation_path = root / "base-validation.txt"
+            base_train_path.write_text("\\n".join(base_train) + "\\n", encoding="utf-8")
+            base_validation_path.write_text(
+                "\\n".join(base_validation) + "\\n", encoding="utf-8"
+            )
+
+            first = mix_corpora(
+                str(base_train_path),
+                str(base_validation_path),
+                dialogue_train,
+                dialogue_validation,
+                str(tokenizer_path),
+                str(root / "mixed-a"),
+                dialogue_fraction=0.35,
+                seed=2026,
+            )
+            second = mix_corpora(
+                str(base_train_path),
+                str(base_validation_path),
+                dialogue_train,
+                dialogue_validation,
+                str(tokenizer_path),
+                str(root / "mixed-b"),
+                dialogue_fraction=0.35,
+                seed=2026,
+            )
+
+            self.assertGreater(first["dialogue_source_token_count"], first["base_train_token_count"])
+            self.assertLess(first["dialogue_train_samples_used"], len(dialogue_train))
+            self.assertGreaterEqual(first["dialogue_token_fraction_achieved_estimate"], 0.34)
+            self.assertLessEqual(first["dialogue_token_fraction_achieved_estimate"], 0.36)
+            self.assertEqual(first["dialogue_train_samples_used"], second["dialogue_train_samples_used"])
+            self.assertEqual(first["train_sha256"], second["train_sha256"])
+            self.assertEqual(first["dialogue_token_fraction_achieved_estimate"],
+                             second["dialogue_token_fraction_achieved_estimate"])
 
     def test_response_mask_excludes_user_text_and_masks_only_assistant_turns(self):
         user, assistant, eot = 5, 6, 10
