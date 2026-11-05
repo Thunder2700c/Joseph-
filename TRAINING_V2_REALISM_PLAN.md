@@ -64,10 +64,13 @@ The first v2 human-dialogue audit uses:
 - OASST1: English, reviewed, non-deleted and explicitly non-synthetic human messages; preserve conversation-tree split isolation.
 - DailyDialog: multi-turn everyday conversations and human emotion/communication labels.
 - EmpatheticDialogues: crowdsourced emotional-situation conversations with the official train/validation/test split.
+- Taskmaster (GEM/Taskmaster, pinned revision): human-crowdsourced task-oriented conversations. The published snapshot has 233,904 response examples; our parser strips task/API markup and keeps only natural user/assistant utterances. The source manifest records a deterministic conversation-ID re-split because the upstream example-level partitions reused conversation IDs across train and validation. The data card declares CC BY 4.0.
 
-The initial audit has a non-commercial licensing constraint: DailyDialog is CC BY-NC-SA 4.0 and EmpatheticDialogues is CC BY-NC 4.0. Preserve attribution, and do not assume a commercial model release is permitted. OASST1 is Apache-2.0.
+The current audit produced source-separated train/validation/test files so the future trainer can sample by token share rather than allowing the largest dataset to dominate. The combined train.txt is inspection-only. Taskmaster is repetitive and transaction-oriented, so it should be a small auxiliary share (initially test around 5–10% of the dialogue token budget), not a primary role-play source.
 
-These sources teach different things. DailyDialog provides everyday turn-taking; EmpatheticDialogues provides emotion-grounded responses; OASST1 contributes broader human-written conversational responses. None alone is sufficient for role-play.
+The initial mixture still has a non-commercial licensing constraint: DailyDialog is CC BY-NC-SA 4.0 and EmpatheticDialogues is CC BY-NC 4.0. Preserve attribution, and do not assume a commercial model release is permitted. OASST1 is Apache-2.0; Taskmaster is CC BY 4.0.
+
+These sources teach different things. DailyDialog provides everyday turn-taking; EmpatheticDialogues provides emotion-grounded responses; OASST1 contributes broader human-written conversational responses; Taskmaster contributes clarifications, confirmations and dialogue repair. None alone is sufficient for character role-play.
 
 ### 3. Persona and long-running relationships
 
