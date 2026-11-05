@@ -27,6 +27,8 @@ EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNO
 WHITESPACE_PATTERN = re.compile(r"\s+")
 TASKMASTER_TAG_PATTERN = re.compile(r"<[A-Z]+>")
 MOJIBAKE_PATTERN = re.compile(r"(?:Ã.|Â.|â€|ï»¿|�)")
+AI_BOILERPLATE_PATTERN = re.compile(r"(?i)\\bas an? (?:ai|artificial intelligence|language) model\\b|\\bi am an? (?:ai|artificial intelligence)\\b|\\bi do not have access to (?:the )?(?:internet|real.time information)\\b")
+ASSISTANT_SEGMENT_PATTERN = re.compile(r"<\\|assistant\\|>(.*?)(?=<\\|(?:assistant|user|eot)\\|>|$)", re.DOTALL)
 
 LICENSES = {
     "oasst1": {
@@ -60,6 +62,7 @@ LICENSES = {
 
 
 def normalize(value: str) -> str:
+    value = value.replace("_comma_", ",")
     return WHITESPACE_PATTERN.sub(" ", value).strip()
 
 
@@ -111,7 +114,7 @@ def daily_dialog_samples(row: dict[str, Any]) -> list[str]:
 def empathetic_sample(row: dict[str, Any]) -> str | None:
     prompt = acceptable_text(row.get("prompt"), minimum=4)
     response = acceptable_text(row.get("utterance"))
-    if prompt is None or response is None:
+    if prompt is None or response is None or prompt.casefold() == response.casefold():
         return None
     context = acceptable_text(row.get("context"), maximum=100)
     prefix = f"<|system|> Conversation situation: {context} " if context else ""
@@ -279,6 +282,21 @@ def iter_taskmaster_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str
     }
 
 
+def filter_assistant_boilerplate(source_groups: dict[str, dict[str, list[str]]]):
+    filtered = {}
+    counts = {}
+    for source, splits in source_groups.items():
+        filtered[source] = {name: [] for name in ("train", "validation", "test")}
+        counts[source] = {name: 0 for name in ("train", "validation", "test")}
+        for split, samples in splits.items():
+            for sample in samples:
+                assistant_text = " ".join(match.group(1) for match in ASSISTANT_SEGMENT_PATTERN.finditer(sample))
+                if AI_BOILERPLATE_PATTERN.search(assistant_text):
+                    counts[source][split] += 1
+                    continue
+                filtered[source][split].append(sample)
+    return filtered, counts
+
 def deduplicate_source_splits(
     source_groups: dict[str, dict[str, list[str]]],
 ) -> tuple[dict[str, dict[str, list[str]]], dict[str, list[str]], dict[str, dict[str, int]]]:
@@ -363,6 +381,7 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
         "empathetic_dialogues": empathetic_groups,
         "taskmaster": taskmaster_groups,
     }
+    source_groups, boilerplate_rejections = filter_assistant_boilerplate(source_groups)
     source_corpora, corpus, duplicates = deduplicate_source_splits(source_groups)
 
     for split, samples in corpus.items():
@@ -432,6 +451,7 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
         },
         "source_files": source_file_reports,
         "exact_duplicates_removed_by_source_and_split": duplicates,
+        "ai_boilerplate_rejected_by_source_and_split": boilerplate_rejections,
         "training_policy": (
             "The combined train.txt is for inspection only. Use sources/<source>/train.txt "
             "with an explicit token-weighted sampler; do not naively concatenate or train "
