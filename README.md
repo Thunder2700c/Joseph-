@@ -6,7 +6,7 @@ This is a from-scratch Hu Tao character-model research project. It does not cont
 
 ## Project continuation and development order
 
-Read [CONTINUATION_CONTEXT.md](CONTINUATION_CONTEXT.md) first when resuming this project in a new ChatGPT conversation. It is the central handoff summary. See [MODEL_TRAINING_PLAN.md](MODEL_TRAINING_PLAN.md) for the complete research plan and [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md) for the currently authorized base-language stage.
+Read [CONTINUATION_CONTEXT.md](CONTINUATION_CONTEXT.md) first when resuming this project in a new ChatGPT conversation. It is the central handoff summary. The active realism-focused rebuild is documented in [TRAINING_V2_REALISM_PLAN.md](TRAINING_V2_REALISM_PLAN.md). [MODEL_TRAINING_PLAN.md](MODEL_TRAINING_PLAN.md) and [LANGUAGE_FOUNDATION.md](LANGUAGE_FOUNDATION.md) record the earlier pilot and its history.
 
 The current order is: **build the general language foundation while former-life research continues → finish and review Hu Tao's former-life memories → directly train and evaluate her character behaviour → only then build the Android app.** Hu Tao-specific training remains gated on reviewed life memories and public Teyvat knowledge.
 
@@ -45,7 +45,7 @@ The tokenizer reserves a dedicated Hu Tao speaker token. The base trainer suppor
 
 ## Model size is not memory size
 
-The 1 GB limit is a hard maximum for the **complete distributable AI inference payload**, not just the checkpoint and not the context window. It is 1,000,000,000 bytes total across weights, tokenizer/vocabulary, config, generation metadata and all auxiliary AI assets. There is no minimum size. The separately stored training corpus and user-owned memory databases are not bundled into this payload.
+The target final download is approximately **1.0–1.5 GB**. The hard maximum for the **complete distributable AI inference payload** is **1,500,000,000 decimal bytes**, counting quantized weights, tokenizer/vocabulary, config, generation settings and every required inference asset. Training data, optimizer state, logs and evaluation data remain separate and are not bundled.
 
 - The default 8,192-vocabulary reference Transformer is estimated at about 6.90 million parameters and roughly 26.3 MiB of raw FP32 weights; actual configuration and checkpoint metadata are recorded per run.
 - Its default active context is 256 tokens; that token limit is separate from the weight budget.
