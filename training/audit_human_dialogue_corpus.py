@@ -279,20 +279,37 @@ def iter_taskmaster_splits(dataset: Any) -> tuple[dict[str, list[str]], dict[str
     }
 
 
-def deduplicate_splits(groups: dict[str, list[str]]) -> tuple[dict[str, list[str]], dict[str, int]]:
-    # Hold-out examples have priority: exact duplicates cannot leak into train.
+def deduplicate_source_splits(
+    source_groups: dict[str, dict[str, list[str]]],
+) -> tuple[dict[str, dict[str, list[str]]], dict[str, list[str]], dict[str, dict[str, int]]]:
+    """Deduplicate globally while retaining the source of every surviving sample.
+
+    Held-out splits take priority over training. If the same exact sample
+    appears in multiple sources, the first source in insertion order owns it.
+    """
+    by_source = {
+        source: {"train": [], "validation": [], "test": []}
+        for source in source_groups
+    }
+    combined = {"train": [], "validation": [], "test": []}
+    duplicates: dict[str, dict[str, int]] = {
+        source: {"train": 0, "validation": 0, "test": 0}
+        for source in source_groups
+    }
     seen: set[str] = set()
-    result = {"train": [], "validation": [], "test": []}
-    duplicates: dict[str, int] = defaultdict(int)
     for split in ("test", "validation", "train"):
-        for sample in groups[split]:
-            digest = sha256_text(sample)
-            if digest in seen:
-                duplicates[split] += 1
-                continue
-            seen.add(digest)
-            result[split].append(sample)
-    return result, dict(duplicates)
+        for source, groups in source_groups.items():
+            for sample in groups[split]:
+                digest = sha256_text(sample)
+                if digest in seen:
+                    duplicates[source][split] += 1
+                    continue
+                seen.add(digest)
+                by_source[source][split].append(sample)
+                combined[split].append(sample)
+    if not all(combined.values()):
+        raise RuntimeError("Final deduplicated corpus must have non-empty train/validation/test")
+    return by_source, combined, duplicates
 
 
 def build_corpus(output_dir: str | Path) -> dict[str, Any]:
@@ -336,41 +353,56 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
     )
     taskmaster_groups, taskmaster_report = iter_taskmaster_splits(taskmaster)
 
-    raw = {
-        "train": (
-            oasst_train + daily_groups["train"] + empathetic_groups["train"]
-            + taskmaster_groups["train"]
-        ),
-        "validation": (
-            oasst_validation + daily_groups["validation"] + empathetic_groups["validation"]
-            + taskmaster_groups["validation"]
-        ),
-        "test": daily_groups["test"] + empathetic_groups["test"] + taskmaster_groups["test"],
+    source_groups = {
+        "oasst1": {
+            "train": oasst_train,
+            "validation": oasst_validation,
+            "test": [],
+        },
+        "daily_dialog": daily_groups,
+        "empathetic_dialogues": empathetic_groups,
+        "taskmaster": taskmaster_groups,
     }
-    corpus, duplicates = deduplicate_splits(raw)
-    if not all(corpus.values()):
-        raise RuntimeError("Final corpus must have non-empty train/validation/test")
+    source_corpora, corpus, duplicates = deduplicate_source_splits(source_groups)
 
     for split, samples in corpus.items():
         (output / f"{split}.txt").write_text(
             "\n".join(samples) + "\n", encoding="utf-8", newline="\n"
         )
 
+    source_file_reports: dict[str, dict[str, dict[str, Any]]] = {}
+    for source, split_groups in source_corpora.items():
+        source_file_reports[source] = {}
+        source_dir = output / "sources" / source
+        source_dir.mkdir(parents=True, exist_ok=True)
+        for split, samples in split_groups.items():
+            source_path = source_dir / f"{split}.txt"
+            source_text = "\n".join(samples) + ("\n" if samples else "")
+            source_path.write_text(source_text, encoding="utf-8", newline="\n")
+            source_file_reports[source][split] = {
+                "samples": len(samples),
+                "bytes": source_path.stat().st_size,
+                "sha256": sha256_text(source_text),
+            }
+
     preview = [
         "# Human-authored dialogue corpus preview",
         "",
         "Audit artifact only; not a model release.",
+        "Review source-separated files before selecting token-level training weights.",
         "",
     ]
     for split in ("validation", "test"):
-        preview.extend([f"## {split.title()} examples", ""])
-        for sample in corpus[split][:12]:
-            preview.extend(["---", sample, ""])
+        preview.extend([f"## {split.title()} examples by source", ""])
+        for source, split_groups in source_corpora.items():
+            preview.extend([f"### {source}", ""])
+            for sample in split_groups[split][:3]:
+                preview.extend(["---", sample, ""])
     (output / "preview.md").write_text("\n".join(preview), encoding="utf-8")
 
     report = {
         "format": "hutao-human-dialogue-corpus-v2",
-        "purpose": "general conversational behaviour and emotional dialogue research",
+        "purpose": "general conversational behaviour, emotional dialogue and task-repair research; not a finished character role-play corpus",
         "sources": {
             "oasst1": {
                 **LICENSES["oasst1"],
@@ -394,7 +426,18 @@ def build_corpus(output_dir: str | Path) -> dict[str, Any]:
             },
         },
         "samples_by_split": {k: len(v) for k, v in corpus.items()},
-        "exact_duplicates_removed_by_split": duplicates,
+        "final_source_samples_by_split": {
+            source: {split: len(samples) for split, samples in split_groups.items()}
+            for source, split_groups in source_corpora.items()
+        },
+        "source_files": source_file_reports,
+        "exact_duplicates_removed_by_source_and_split": duplicates,
+        "training_policy": (
+            "The combined train.txt is for inspection only. Use sources/<source>/train.txt "
+            "with an explicit token-weighted sampler; do not naively concatenate or train "
+            "with equal example weights. Taskmaster is task-oriented and should remain a "
+            "small auxiliary share, not the main role-play source."
+        ),
         "files": {
             f"{split}.txt": {
                 "bytes": (output / f"{split}.txt").stat().st_size,
